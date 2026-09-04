@@ -1,0 +1,123 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+@media print {
+    @page {
+        margin: 10mm;
+        size: A4 portrait;
+    }
+
+    /* Suppress browser print headers, footers & background colors */
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+    }
+
+    /* Hide all top-level body children EXCEPT dedicated print root portals */
+    body > *:not(#thermal-receipt-print-root):not(#po-print-root) {
+        display: none !important;
+    }
+
+    /* Thermal Receipt print root portal */
+    #thermal-receipt-print-root {
+        display: block !important;
+        visibility: visible !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        margin: 0 !important;
+        padding: 4px !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        box-shadow: none !important;
+        border: none !important;
+        z-index: 999999 !important;
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    #thermal-receipt-print-root * {
+        visibility: visible !important;
+    }
+
+    /* Purchase Order document print root portal */
+    #po-print-root {
+        display: block !important;
+        visibility: visible !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        box-shadow: none !important;
+        border: none !important;
+        z-index: 999999 !important;
+    }
+
+    #po-print-root * {
+        visibility: visible !important;
+    }
+}
+
+/* Mobile Native App Utilities & Safe Area Insets */
+.safe-pt {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-pl {
+    padding-left: env(safe-area-inset-left, 0px);
+}
+
+.safe-pr {
+    padding-right: env(safe-area-inset-right, 0px);
+}
+
+.safe-mt {
+    margin-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-mb {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-dvh {
+    height: 100dvh;
+}
+
+.mobile-min-dvh {
+    min-height: 100dvh;
+}
+
+.touch-target {
+    min-height: 44px;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
