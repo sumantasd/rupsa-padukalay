@@ -8,7 +8,7 @@
           Manage multi-store retail branches, location details & user store assignments
         </p>
       </div>
-      <Button v-if="hasPermission('users.manage')" variant="primary" size="md" @click="openCreateModal">
+      <Button v-if="hasPermission('users.manage') && moduleStore.allowNewStoreCreation" variant="primary" size="md" @click="openCreateModal">
         + Add New Store
       </Button>
     </div>
@@ -81,25 +81,30 @@
       </template>
 
       <template #actions="{ item }">
-        <div class="flex items-center gap-2" v-if="hasPermission('users.manage')">
-          <Button variant="outline" size="sm" @click="openEditModal(item)">
-            Edit
+        <div class="flex items-center gap-2">
+          <Button variant="ghost" size="sm" @click="goToPerformance(item)" title="View Store Performance">
+            📊 Performance
           </Button>
-          <Button
-            :variant="item.is_active ? 'secondary' : 'primary'"
-            size="sm"
-            @click="toggleStatus(item)"
-          >
-            {{ item.is_active ? 'Deactivate' : 'Activate' }}
-          </Button>
-          <Button
-            v-if="item.code !== 'STR-001' && item.code !== 'ST-001' && item.id !== 1"
-            variant="danger"
-            size="sm"
-            @click="confirmDeleteStore(item)"
-          >
-            Delete
-          </Button>
+          <template v-if="hasPermission('users.manage')">
+            <Button variant="outline" size="sm" @click="openEditModal(item)">
+              Edit
+            </Button>
+            <Button
+              :variant="item.is_active ? 'secondary' : 'primary'"
+              size="sm"
+              @click="toggleStatus(item)"
+            >
+              {{ item.is_active ? 'Deactivate' : 'Activate' }}
+            </Button>
+            <Button
+              v-if="item.code !== 'STR-001' && item.code !== 'ST-001' && item.id !== 1"
+              variant="danger"
+              size="sm"
+              @click="confirmDeleteStore(item)"
+            >
+              Delete
+            </Button>
+          </template>
         </div>
       </template>
     </DataTable>
@@ -159,13 +164,21 @@ import Modal from '../../components/ui/Modal.vue';
 import StoreFormModal from './StoreFormModal.vue';
 import StoreUsersModal from './StoreUsersModal.vue';
 import api from '../../services/api';
+import { useRouter } from 'vue-router';
 import { useAuth } from '../../composables/useAuth';
 import { useToast } from '../../composables/useToast';
 import { useStoreAccessStore } from '../../stores/storeAccessStore';
+import { useModuleStore } from '../../stores/moduleStore';
 
+const router = useRouter();
 const { hasPermission } = useAuth();
 const toast = useToast();
 const storeAccessStore = useStoreAccessStore();
+const moduleStore = useModuleStore();
+
+function goToPerformance(store) {
+  router.push({ name: 'stores-performance', query: { store_id: store.id } });
+}
 
 const stores = ref([]);
 const loading = ref(false);
@@ -203,7 +216,8 @@ async function fetchStores() {
   try {
     const params = {};
     if (search.value) params.search = search.value;
-    if (activeOnly.value) params.active_only = 1;
+    if (!activeOnly.value) params.include_inactive = 1;
+    else params.is_active = 1;
 
     const res = await api.get('/stores', { params });
     if (res.success && res.data) {
@@ -275,5 +289,6 @@ async function toggleStatus(store) {
 
 onMounted(() => {
   fetchStores();
+  moduleStore.fetchSettings();
 });
 </script>

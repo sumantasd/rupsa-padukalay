@@ -126,9 +126,18 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
+        setUser(userData) {
+            this.user = userData;
+            localStorage.setItem('rupsa_user', JSON.stringify(userData));
+        },
+
         hasPermission(permissionName) {
             if (this.isSuperAdmin) return true;
             if (!permissionName) return true;
+            if (typeof permissionName === 'string' && permissionName.includes('|')) {
+                const parts = permissionName.split('|').map(p => p.trim());
+                return parts.some(p => this.permissions.includes(p));
+            }
             return this.permissions.includes(permissionName);
         },
     },

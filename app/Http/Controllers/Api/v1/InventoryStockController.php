@@ -23,6 +23,7 @@ class InventoryStockController extends Controller
         $query = InventoryStock::with([
             'variantSize.variant.product.brand',
             'variantSize.variant.product.category',
+            'variantSize.variant.product.images',
             'variantSize.variant.color',
             'variantSize.size',
             'store',
@@ -235,6 +236,7 @@ class InventoryStockController extends Controller
         $query = InventoryStock::with([
             'variantSize.variant.product.brand',
             'variantSize.variant.product.category',
+            'variantSize.variant.product.images',
             'variantSize.variant.color',
             'variantSize.size',
             'store',
@@ -339,6 +341,7 @@ class InventoryStockController extends Controller
         $stock = InventoryStock::with([
             'variantSize.variant.product.brand',
             'variantSize.variant.product.category',
+            'variantSize.variant.product.images',
             'variantSize.variant.color',
             'variantSize.size',
             'store',

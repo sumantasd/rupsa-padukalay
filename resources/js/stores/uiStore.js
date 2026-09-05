@@ -36,6 +36,18 @@ export const useUiStore = defineStore('ui', {
             this.isMoreMenuOpen = false;
         },
 
+        initTheme() {
+            if (typeof window === 'undefined') return;
+            const saved = localStorage.getItem('rupsa_theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                this.isDarkMode = true;
+                document.documentElement.classList.add('dark');
+            } else {
+                this.isDarkMode = false;
+                document.documentElement.classList.remove('dark');
+            }
+        },
+
         toggleDarkMode() {
             this.isDarkMode = !this.isDarkMode;
             localStorage.setItem('rupsa_theme', this.isDarkMode ? 'dark' : 'light');

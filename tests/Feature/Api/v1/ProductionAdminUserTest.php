@@ -24,7 +24,7 @@ class ProductionAdminUserTest extends TestCase
 
         $this->assertNotNull($admin, 'Admin user admin@rupsapadukalaya.in should exist in database.');
         $this->assertTrue($admin->is_active, 'Admin user should be active.');
-        $this->assertTrue(Hash::check('RupsaAdmin#2026!', $admin->password), 'Admin password should match configured secret.');
+        $this->assertTrue(Hash::check('Rupsa@2026@Admin', $admin->password), 'Admin password should match configured secret.');
         
         // Verify Super Admin Role
         $this->assertTrue(
@@ -50,7 +50,7 @@ class ProductionAdminUserTest extends TestCase
     {
         $response = $this->postJson('/api/v1/auth/login', [
             'login' => 'admin@rupsapadukalaya.in',
-            'password' => 'RupsaAdmin#2026!',
+            'password' => 'Rupsa@2026@Admin',
             'device_name' => 'Admin ERP Portal',
         ]);
 

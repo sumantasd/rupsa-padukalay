@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\ImageUrlService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -22,15 +23,7 @@ class PurchaseOrderItemResource extends JsonResource
         $qtyReceived = (int) $this->quantity_received;
 
         $primaryImage = $product?->images ? ($product->images->where('is_primary', true)->first() ?? $product->images->first()) : null;
-        $imageUrl = null;
-        if ($primaryImage && ! empty($primaryImage->image_path)) {
-            $path = trim((string) $primaryImage->image_path);
-            if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, '/')) {
-                $imageUrl = $path;
-            } else {
-                $imageUrl = '/storage/' . ltrim($path, '/');
-            }
-        }
+        $imageUrl = ImageUrlService::format($primaryImage?->image_path);
 
         return [
             'id' => $this->id,

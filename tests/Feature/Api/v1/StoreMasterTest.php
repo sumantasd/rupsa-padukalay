@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\v1;
 
+use App\Models\CmsSetting;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
@@ -72,9 +73,35 @@ class StoreMasterTest extends TestCase
         $this->getJson('/api/v1/stores')->assertStatus(403);
     }
 
-    public function test_successful_store_creation_listing_and_viewing(): void
+    public function test_store_creation_rejected_when_toggle_setting_is_off_default(): void
     {
         Sanctum::actingAs($this->superAdmin);
+
+        // Setting is OFF by default ('0')
+        $this->assertEquals('0', CmsSetting::getSetting('allow_new_store_creation', '0'));
+
+        $res = $this->postJson('/api/v1/stores', [
+            'code' => 'ST-KOL',
+            'name' => 'Kolkata Central Store',
+            'phone' => '03322110099',
+            'email' => 'kolkata@example.com',
+            'city' => 'Kolkata',
+            'pincode' => '700001',
+        ]);
+
+        $res->assertStatus(403)
+            ->assertJson([
+                'success' => false,
+                'message' => 'New store creation is currently disabled in system module settings.',
+            ]);
+    }
+
+    public function test_successful_store_creation_listing_and_viewing_when_toggle_is_on(): void
+    {
+        Sanctum::actingAs($this->superAdmin);
+
+        // Turn setting ON
+        CmsSetting::setSetting('allow_new_store_creation', '1');
 
         $res = $this->postJson('/api/v1/stores', [
             'code' => 'ST-KOL',
@@ -104,6 +131,20 @@ class StoreMasterTest extends TestCase
         $this->getJson('/api/v1/stores')
             ->assertStatus(200)
             ->assertJsonCount(1, 'data');
+    }
+
+    public function test_store_creation_rejected_when_user_lacks_rbac_permission_even_if_toggle_is_on(): void
+    {
+        // Turn setting ON
+        CmsSetting::setSetting('allow_new_store_creation', '1');
+
+        // Act as unauthorized user without users.manage permission
+        Sanctum::actingAs($this->unauthorizedUser);
+
+        $this->postJson('/api/v1/stores', [
+            'code' => 'ST-DEL',
+            'name' => 'Delhi Branch Store',
+        ])->assertStatus(403);
     }
 
     public function test_duplicate_store_code_is_rejected(): void

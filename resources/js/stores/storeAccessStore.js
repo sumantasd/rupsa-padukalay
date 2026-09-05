@@ -5,7 +5,10 @@ export const useStoreAccessStore = defineStore('storeAccess', {
     state: () => ({
         activeStoreId: Number(localStorage.getItem('rupsa_active_store_id')) || null,
         availableStores: JSON.parse(localStorage.getItem('rupsa_available_stores') || '[]'),
+        usersMatrix: [],
+        storesList: [],
         loading: false,
+        saving: false,
     }),
 
     getters: {
@@ -36,6 +39,36 @@ export const useStoreAccessStore = defineStore('storeAccess', {
                 console.error('Failed to fetch stores:', e);
             } finally {
                 this.loading = false;
+            }
+        },
+
+        async fetchMatrix() {
+            this.loading = true;
+            try {
+                const res = await api.get('/store-access');
+                if (res.data) {
+                    this.usersMatrix = res.data.users || [];
+                    this.storesList = res.data.stores || [];
+                }
+                return res.data;
+            } catch (e) {
+                console.error('Failed to fetch store access matrix:', e);
+                throw e;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async assignUserStores(userId, payload) {
+            this.saving = true;
+            try {
+                const res = await api.post(`/store-access/assign/${userId}`, payload);
+                await this.fetchMatrix();
+                return res;
+            } catch (e) {
+                throw e;
+            } finally {
+                this.saving = false;
             }
         },
     },

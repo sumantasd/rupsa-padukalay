@@ -80,6 +80,32 @@
           </div>
         </div>
 
+        <!-- ALLOW NEW STORE CREATION TOGGLE -->
+        <div class="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1 max-w-xl">
+            <div class="font-black text-slate-900 text-sm">Allow New Store Creation</div>
+            <p class="text-slate-600 leading-relaxed">
+              Allow authorized administrators to create new stores from the Stores module.
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="toggleModule('allowNewStoreCreation')"
+            :disabled="saving"
+            :class="[
+              'relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out',
+              moduleStore.allowNewStoreCreation ? 'bg-red-600' : 'bg-slate-300'
+            ]"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out',
+                moduleStore.allowNewStoreCreation ? 'translate-x-6' : 'translate-x-0'
+              ]"
+            ></span>
+          </button>
+        </div>
+
         <!-- LOYALTY TOGGLE -->
         <div class="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div class="space-y-1 max-w-xl">

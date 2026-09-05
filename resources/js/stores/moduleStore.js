@@ -8,6 +8,7 @@ export const useModuleStore = defineStore('moduleStore', {
     transfers: true,
     advancedReports: true,
     expenses: true,
+    allowNewStoreCreation: false, // Default Allow New Store Creation OFF
     loading: false,
     initialized: false,
   }),
@@ -24,6 +25,7 @@ export const useModuleStore = defineStore('moduleStore', {
           this.transfers = d.transfers_enabled !== false;
           this.advancedReports = d.advanced_reports_enabled !== false;
           this.expenses = d.expenses_enabled !== false;
+          this.allowNewStoreCreation = d.allow_new_store_creation === true || d.allow_new_store_creation === '1' || d.allow_new_store_creation === 1;
         }
       } catch (err) {
         console.warn('Failed to fetch module settings from API, using default Single Store mode:', err);
@@ -42,6 +44,7 @@ export const useModuleStore = defineStore('moduleStore', {
         if (moduleKey === 'transfers') payload.transfers_enabled = isEnabled;
         if (moduleKey === 'advancedReports') payload.advanced_reports_enabled = isEnabled;
         if (moduleKey === 'expenses') payload.expenses_enabled = isEnabled;
+        if (moduleKey === 'allowNewStoreCreation') payload.allow_new_store_creation = isEnabled;
 
         const response = await api.put('/module-settings', payload);
         if (response.data) {
@@ -51,6 +54,7 @@ export const useModuleStore = defineStore('moduleStore', {
           this.transfers = d.transfers_enabled !== false;
           this.advancedReports = d.advanced_reports_enabled !== false;
           this.expenses = d.expenses_enabled !== false;
+          this.allowNewStoreCreation = d.allow_new_store_creation === true || d.allow_new_store_creation === '1' || d.allow_new_store_creation === 1;
         }
         return true;
       } catch (err) {

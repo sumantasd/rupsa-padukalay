@@ -54,6 +54,44 @@ class AuthController extends Controller
         );
     }
 
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:150'],
+            'email' => ['required', 'email', 'max:150', 'unique:users,email,' . $user->id],
+            'phone' => ['nullable', 'string', 'max:30'],
+        ]);
+
+        $user->update($validated);
+        $user->load(['roles.permissions', 'stores']);
+
+        return $this->successResponse(
+            new UserResource($user),
+            'Profile updated successfully.'
+        );
+    }
+
+    public function changePassword(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'current_password' => ['required', 'string'],
+            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        if (! Hash::check($request->input('current_password'), $user->password)) {
+            return $this->errorResponse('Current password is incorrect.', 422);
+        }
+
+        $user->password = Hash::make($request->input('new_password'));
+        $user->save();
+
+        return $this->successResponse(null, 'Password changed successfully.');
+    }
+
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();

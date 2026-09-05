@@ -197,6 +197,7 @@
                     👁️ Details
                   </button>
                   <button
+                    v-if="hasPermission('sales_returns.delete')"
                     @click="confirmDeleteReturn(ret)"
                     class="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-[11px] transition-colors shadow-xs"
                     title="Delete Sales Return & Reverse Transaction"
@@ -233,327 +234,337 @@
     </div>
 
     <!-- PROCESS NEW RETURN WIZARD MODAL -->
-    <div v-if="showWizard" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-      <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-3xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto text-xs">
-        <!-- Wizard Header -->
-        <div class="flex items-center justify-between border-b border-slate-200 pb-4">
-          <div>
-            <h3 class="text-lg font-black text-slate-900">Process Sales Return</h3>
-            <p class="text-xs text-slate-500 font-medium mt-0.5">Select original POS invoice, choose returned footwear items & refund mode.</p>
+    <Teleport to="body">
+      <div v-if="showWizard" class="fixed inset-0 z-[500] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-3xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto text-xs">
+          <!-- Wizard Header -->
+          <div class="flex items-center justify-between border-b border-slate-200 pb-4">
+            <div>
+              <h3 class="text-lg font-black text-slate-900">Process Sales Return</h3>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">Select original POS invoice, choose returned footwear items & refund mode.</p>
+            </div>
+            <button @click="showWizard = false" class="p-2 rounded-xl text-slate-400 hover:text-slate-800 font-black text-lg cursor-pointer">✕</button>
           </div>
-          <button @click="showWizard = false" class="p-2 rounded-xl text-slate-400 hover:text-slate-800 font-black text-lg">✕</button>
-        </div>
 
-        <!-- STEP 1: Search & Select Invoice -->
-        <div v-if="wizardStep === 1" class="space-y-4">
-          <div class="space-y-1.5">
-            <label class="font-black text-slate-800 block">Search Original Sales Invoice # or Customer Phone</label>
-            <div class="flex gap-2">
-              <input
-                v-model="invoiceSearchQuery"
-                type="text"
-                placeholder="e.g. INV-20260903-XXXX or 9735125112"
-                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 font-bold text-slate-900 focus:ring-2 focus:ring-red-600 focus:bg-white"
-              />
-              <button
-                @click="searchOriginalInvoices"
-                :disabled="searchingInvoices"
-                class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shrink-0"
+          <!-- STEP 1: Search & Select Invoice -->
+          <div v-if="wizardStep === 1" class="space-y-4">
+            <div class="space-y-1.5">
+              <label class="font-black text-slate-800 block">Search Original Sales Invoice # or Customer Phone</label>
+              <div class="flex gap-2">
+                <input
+                  v-model="invoiceSearchQuery"
+                  type="text"
+                  placeholder="e.g. INV-20260903-XXXX or 9735125112"
+                  class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 font-bold text-slate-900 focus:ring-2 focus:ring-red-600 focus:bg-white"
+                />
+                <button
+                  @click="searchOriginalInvoices"
+                  :disabled="searchingInvoices"
+                  class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shrink-0 cursor-pointer"
+                >
+                  {{ searchingInvoices ? 'Searching...' : 'Search' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Matching Invoices List -->
+            <div v-if="foundInvoices.length > 0" class="space-y-2 max-h-60 overflow-y-auto border border-slate-200 rounded-2xl p-2 bg-slate-50">
+              <div
+                v-for="inv in foundInvoices"
+                :key="inv.id"
+                @click="selectInvoiceForReturn(inv)"
+                class="p-3 bg-white hover:bg-red-50 border border-slate-200 rounded-xl cursor-pointer transition-colors flex items-center justify-between"
               >
-                {{ searchingInvoices ? 'Searching...' : 'Search' }}
+                <div>
+                  <div class="font-mono font-black text-red-600 text-xs">{{ inv.invoice_number }}</div>
+                  <div class="text-[11px] text-slate-600 font-bold">{{ inv.customer?.name || 'Walk-in Customer' }} ({{ inv.customer?.mobile_number || 'N/A' }})</div>
+                  <div class="text-[10px] text-slate-400">{{ formatDateTime(inv.created_at) }}</div>
+                </div>
+                <div class="text-right">
+                  <div class="font-mono font-black text-slate-900">₹{{ formatCurrency(inv.grand_total) }}</div>
+                  <div class="text-[10px] font-bold text-emerald-700 uppercase">{{ inv.status }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2: Select Items to Return -->
+          <div v-else-if="wizardStep === 2" class="space-y-5">
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex justify-between items-center">
+              <div>
+                <div class="font-mono font-black text-red-600">{{ targetInvoice.invoice_number }}</div>
+                <div class="font-bold text-slate-800 text-xs">{{ targetInvoice.customer?.name || 'Walk-in Customer' }}</div>
+              </div>
+              <button @click="wizardStep = 1" class="text-xs font-bold text-slate-500 hover:text-red-600 cursor-pointer">Change Invoice</button>
+            </div>
+
+            <div class="space-y-2">
+              <h4 class="font-black text-slate-900 uppercase text-[11px]">Select Items & Return Quantities</h4>
+              <div class="overflow-x-auto rounded-xl border border-slate-200">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-100 border-b border-slate-200 text-[10px] font-black text-slate-600 uppercase">
+                    <tr>
+                      <th class="py-2.5 px-3">Article #</th>
+                      <th class="py-2.5 px-3">Product Name</th>
+                      <th class="py-2.5 px-3">Color / Size (IND)</th>
+                      <th class="py-2.5 px-3 text-center">Purchased</th>
+                      <th class="py-2.5 px-3 text-center">Return Qty</th>
+                      <th class="py-2.5 px-3 text-center">Condition</th>
+                      <th class="py-2.5 px-3 text-right">Return Val (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 font-medium text-slate-808">
+                    <tr v-for="item in returnFormItems" :key="item.invoice_item_id">
+                      <td class="py-2.5 px-3 font-mono font-bold text-red-600">{{ item.article_number }}</td>
+                      <td class="py-2.5 px-3 font-bold text-slate-900">{{ item.product_name }}</td>
+                      <td class="py-2.5 px-3">{{ item.color_name }} / IND {{ item.size_number }}</td>
+                      <td class="py-2.5 px-3 text-center font-mono font-bold">{{ item.max_returnable }} pcs</td>
+                      <td class="py-2.5 px-3 text-center">
+                        <input
+                          v-model.number="item.quantity"
+                          type="number"
+                          min="0"
+                          :max="item.max_returnable"
+                          class="w-16 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-center font-mono font-bold text-slate-900 focus:ring-2 focus:ring-red-600"
+                        />
+                      </td>
+                      <td class="py-2.5 px-3 text-center">
+                        <select
+                          v-model="item.restock_condition"
+                          class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold"
+                        >
+                          <option value="resellable">Resellable (Stock +)</option>
+                          <option value="damaged">Damaged (No Stock)</option>
+                        </select>
+                      </td>
+                      <td class="py-2.5 px-3 text-right font-mono font-black text-amber-700">
+                        ₹{{ formatCurrency(item.quantity * item.unit_price) }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Refund Mode & Reason -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div class="space-y-1">
+                <label class="font-black text-slate-800 block">Refund Method <span class="text-red-600">*</span></label>
+                <select
+                  v-model="returnMeta.refund_mode"
+                  class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 font-bold text-slate-900 focus:ring-2 focus:ring-red-600"
+                >
+                  <option value="cash">Cash Refund</option>
+                  <option value="upi">UPI Refund</option>
+                  <option value="card">Card Refund</option>
+                  <option value="store_credit">Issue Customer Store Credit</option>
+                </select>
+              </div>
+
+              <div class="space-y-1">
+                <label class="font-black text-slate-800 block">Return Reason <span class="text-red-600">*</span></label>
+                <select
+                  v-model="returnMeta.reason"
+                  class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 font-bold text-slate-900 focus:ring-2 focus:ring-red-600"
+                >
+                  <option value="Customer Return">Customer Return</option>
+                  <option value="Wrong Size">Wrong Size</option>
+                  <option value="Defective Product">Defective Product</option>
+                  <option value="Wrong Product">Wrong Product</option>
+                  <option value="Damaged Product">Damaged Product</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Summary & Action -->
+            <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+              <div>
+                <span class="text-xs text-slate-500 font-bold block">Total Refund Value:</span>
+                <span class="font-mono font-black text-amber-700 text-lg">₹{{ formatCurrency(calculatedTotalRefund) }}</span>
+              </div>
+
+              <button
+                @click="submitReturn"
+                :disabled="submittingReturn || calculatedTotalRefund <= 0"
+                class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-md shadow-red-600/20 cursor-pointer disabled:opacity-50"
+              >
+                {{ submittingReturn ? 'Processing...' : 'Confirm Sales Return' }}
               </button>
             </div>
           </div>
-
-          <!-- Matching Invoices List -->
-          <div v-if="foundInvoices.length > 0" class="space-y-2 max-h-60 overflow-y-auto border border-slate-200 rounded-2xl p-2 bg-slate-50">
-            <div
-              v-for="inv in foundInvoices"
-              :key="inv.id"
-              @click="selectInvoiceForReturn(inv)"
-              class="p-3 bg-white hover:bg-red-50 border border-slate-200 rounded-xl cursor-pointer transition-colors flex items-center justify-between"
-            >
-              <div>
-                <div class="font-mono font-black text-red-600 text-xs">{{ inv.invoice_number }}</div>
-                <div class="text-[11px] text-slate-600 font-bold">{{ inv.customer?.name || 'Walk-in Customer' }} ({{ inv.customer?.mobile_number || 'N/A' }})</div>
-                <div class="text-[10px] text-slate-400">{{ formatDateTime(inv.created_at) }}</div>
-              </div>
-              <div class="text-right">
-                <div class="font-mono font-black text-slate-900">₹{{ formatCurrency(inv.grand_total) }}</div>
-                <div class="text-[10px] font-bold text-emerald-700 uppercase">{{ inv.status }}</div>
-              </div>
-            </div>
-          </div>
         </div>
+      </div>
+    </Teleport>
 
-        <!-- STEP 2: Select Items to Return -->
-        <div v-else-if="wizardStep === 2" class="space-y-5">
-          <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex justify-between items-center">
+    <!-- RETURN DETAILS MODAL -->
+    <Teleport to="body">
+      <div v-if="selectedReturn" class="fixed inset-0 z-[500] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-3xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto text-xs">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-4">
             <div>
-              <div class="font-mono font-black text-red-600">{{ targetInvoice.invoice_number }}</div>
-              <div class="font-bold text-slate-800 text-xs">{{ targetInvoice.customer?.name || 'Walk-in Customer' }}</div>
+              <h3 class="text-lg font-black text-slate-900">Return Note: {{ selectedReturn.return_number }}</h3>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">Processed on {{ formatDateTime(selectedReturn.created_at) }}</p>
             </div>
-            <button @click="wizardStep = 1" class="text-xs font-bold text-slate-500 hover:text-red-600">Change Invoice</button>
+            <button @click="selectedReturn = null" class="p-2 rounded-xl text-slate-400 hover:text-slate-800 font-black text-lg cursor-pointer">✕</button>
           </div>
 
-          <div class="space-y-2">
-            <h4 class="font-black text-slate-900 uppercase text-[11px]">Select Items & Return Quantities</h4>
-            <div class="overflow-x-auto rounded-xl border border-slate-200">
-              <table class="w-full text-left text-xs">
-                <thead class="bg-slate-100 border-b border-slate-200 text-[10px] font-black text-slate-600 uppercase">
-                  <tr>
-                    <th class="py-2.5 px-3">Article #</th>
-                    <th class="py-2.5 px-3">Product Name</th>
-                    <th class="py-2.5 px-3">Color / Size (IND)</th>
-                    <th class="py-2.5 px-3 text-center">Purchased</th>
-                    <th class="py-2.5 px-3 text-center">Return Qty</th>
-                    <th class="py-2.5 px-3 text-center">Condition</th>
-                    <th class="py-2.5 px-3 text-right">Return Val (₹)</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 font-medium text-slate-800">
-                  <tr v-for="item in returnFormItems" :key="item.invoice_item_id">
-                    <td class="py-2.5 px-3 font-mono font-bold text-red-600">{{ item.article_number }}</td>
-                    <td class="py-2.5 px-3 font-bold text-slate-900">{{ item.product_name }}</td>
-                    <td class="py-2.5 px-3">{{ item.color_name }} / IND {{ item.size_number }}</td>
-                    <td class="py-2.5 px-3 text-center font-mono font-bold">{{ item.max_returnable }} pcs</td>
-                    <td class="py-2.5 px-3 text-center">
-                      <input
-                        v-model.number="item.quantity"
-                        type="number"
-                        min="0"
-                        :max="item.max_returnable"
-                        class="w-16 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-center font-mono font-bold text-slate-900 focus:ring-2 focus:ring-red-600"
-                      />
-                    </td>
-                    <td class="py-2.5 px-3 text-center">
-                      <select
-                        v-model="item.restock_condition"
-                        class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold"
-                      >
-                        <option value="resellable">Resellable (Stock +)</option>
-                        <option value="damaged">Damaged (No Stock)</option>
-                      </select>
-                    </td>
-                    <td class="py-2.5 px-3 text-right font-mono font-black text-amber-700">
-                      ₹{{ formatCurrency(item.quantity * item.unit_price) }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Refund Mode & Reason -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            <div class="space-y-1">
-              <label class="font-black text-slate-800 block">Refund Method <span class="text-red-600">*</span></label>
-              <select
-                v-model="returnMeta.refund_mode"
-                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 font-bold text-slate-900 focus:ring-2 focus:ring-red-600"
-              >
-                <option value="cash">Cash Refund</option>
-                <option value="upi">UPI Refund</option>
-                <option value="card">Card Refund</option>
-                <option value="store_credit">Issue Customer Store Credit</option>
-              </select>
-            </div>
-
-            <div class="space-y-1">
-              <label class="font-black text-slate-800 block">Return Reason <span class="text-red-600">*</span></label>
-              <select
-                v-model="returnMeta.reason"
-                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 font-bold text-slate-900 focus:ring-2 focus:ring-red-600"
-              >
-                <option value="Customer Return">Customer Return</option>
-                <option value="Wrong Size">Wrong Size</option>
-                <option value="Defective Product">Defective Product</option>
-                <option value="Wrong Product">Wrong Product</option>
-                <option value="Damaged Product">Damaged Product</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Summary & Action -->
-          <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
             <div>
-              <span class="text-xs text-slate-500 font-bold block">Total Refund Value:</span>
-              <span class="font-mono font-black text-amber-700 text-lg">₹{{ formatCurrency(calculatedTotalRefund) }}</span>
+              <div class="font-bold text-slate-400 uppercase text-[10px]">Original Invoice</div>
+              <div class="font-mono font-black text-red-600 text-sm">{{ selectedReturn.original_invoice?.invoice_number }}</div>
+              <div class="font-bold text-slate-800">Customer: {{ selectedReturn.customer?.name || 'Walk-in Customer' }}</div>
             </div>
+            <div class="text-left sm:text-right">
+              <div class="font-bold text-slate-400 uppercase text-[10px]">Refund Summary</div>
+              <div class="font-mono font-black text-amber-700 text-lg">₹{{ formatCurrency(selectedReturn.total_refund_amount) }}</div>
+              <div class="font-bold text-slate-700 uppercase">Refund Mode: {{ selectedReturn.refund_mode }}</div>
+            </div>
+          </div>
 
-            <button
-              @click="submitReturn"
-              :disabled="submittingReturn || calculatedTotalRefund <= 0"
-              class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-md shadow-red-600/20"
-            >
-              {{ submittingReturn ? 'Processing...' : 'Confirm Sales Return' }}
+          <div class="flex justify-end gap-2 pt-4 border-t border-slate-200">
+            <button @click="confirmDeleteReturn(selectedReturn); selectedReturn = null" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold flex items-center gap-1 cursor-pointer">
+              <span>🗑️</span>
+              <span>Delete Return</span>
+            </button>
+            <button @click="openThermalReceipt(selectedReturn); selectedReturn = null" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold flex items-center gap-1 cursor-pointer">
+              <span>🖨️</span>
+              <span>Print Receipt</span>
+            </button>
+            <button @click="selectedReturn = null" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold cursor-pointer">
+              Close
             </button>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- RETURN DETAILS MODAL -->
-    <div v-if="selectedReturn" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-      <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-3xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto text-xs">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-4">
-          <div>
-            <h3 class="text-lg font-black text-slate-900">Return Note: {{ selectedReturn.return_number }}</h3>
-            <p class="text-xs text-slate-500 font-medium mt-0.5">Processed on {{ formatDateTime(selectedReturn.created_at) }}</p>
-          </div>
-          <button @click="selectedReturn = null" class="p-2 rounded-xl text-slate-400 hover:text-slate-800 font-black text-lg">✕</button>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-          <div>
-            <div class="font-bold text-slate-400 uppercase text-[10px]">Original Invoice</div>
-            <div class="font-mono font-black text-red-600 text-sm">{{ selectedReturn.original_invoice?.invoice_number }}</div>
-            <div class="font-bold text-slate-800">Customer: {{ selectedReturn.customer?.name || 'Walk-in Customer' }}</div>
-          </div>
-          <div class="text-left sm:text-right">
-            <div class="font-bold text-slate-400 uppercase text-[10px]">Refund Summary</div>
-            <div class="font-mono font-black text-amber-700 text-lg">₹{{ formatCurrency(selectedReturn.total_refund_amount) }}</div>
-            <div class="font-bold text-slate-700 uppercase">Refund Mode: {{ selectedReturn.refund_mode }}</div>
-          </div>
-        </div>
-
-        <div class="flex justify-end gap-2 pt-4 border-t border-slate-200">
-          <button @click="confirmDeleteReturn(selectedReturn); selectedReturn = null" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold flex items-center gap-1">
-            <span>🗑️</span>
-            <span>Delete Return</span>
-          </button>
-          <button @click="openThermalReceipt(selectedReturn); selectedReturn = null" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold flex items-center gap-1">
-            <span>🖨️</span>
-            <span>Print Receipt</span>
-          </button>
-          <button @click="selectedReturn = null" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold">
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+    </Teleport>
 
     <!-- DELETE SALES RETURN CONFIRMATION MODAL -->
-    <div v-if="deleteReturnTarget" class="fixed inset-0 z-[400] bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div class="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom duration-200 text-xs">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div class="flex items-center gap-2">
-            <span class="p-2 bg-red-100 text-red-600 rounded-xl text-lg">⚠️</span>
-            <div>
-              <h3 class="text-base font-black text-slate-900">Delete Sales Return?</h3>
-              <p class="text-xs text-slate-500 font-medium">Safe Reversal of Return Transaction</p>
+    <Teleport to="body">
+      <div v-if="deleteReturnTarget" class="fixed inset-0 z-[550] bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+        <div class="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom duration-200 text-xs">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2">
+              <span class="p-2 bg-red-100 text-red-600 rounded-xl text-lg">⚠️</span>
+              <div>
+                <h3 class="text-base font-black text-slate-900">Delete Sales Return?</h3>
+                <p class="text-xs text-slate-500 font-medium">Safe Reversal of Return Transaction</p>
+              </div>
             </div>
+            <button @click="deleteReturnTarget = null" class="text-slate-400 hover:text-slate-700 font-bold text-lg cursor-pointer">✕</button>
           </div>
-          <button @click="deleteReturnTarget = null" class="text-slate-400 hover:text-slate-700 font-bold text-lg">✕</button>
-        </div>
 
-        <div class="space-y-3">
-          <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2">
-            <div class="flex justify-between">
-              <span class="text-slate-500 font-medium">Return Number:</span>
-              <span class="font-mono font-black text-amber-700">{{ deleteReturnTarget.return_number || ('RET-' + deleteReturnTarget.id) }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500 font-medium">Original Invoice #:</span>
-              <span class="font-mono font-bold text-red-600">{{ deleteReturnTarget.original_invoice?.invoice_number || deleteReturnTarget.original_invoice_number || 'N/A' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500 font-medium">Customer:</span>
-              <span class="font-bold text-slate-900">{{ deleteReturnTarget.customer?.name || deleteReturnTarget.customer_name || 'Walk-in Customer' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500 font-medium">Return Date:</span>
-              <span class="font-mono font-bold text-slate-800">{{ formatDateTime(deleteReturnTarget.created_at) }}</span>
-            </div>
+          <div class="space-y-3">
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2">
+              <div class="flex justify-between">
+                <span class="text-slate-500 font-medium">Return Number:</span>
+                <span class="font-mono font-black text-amber-700">{{ deleteReturnTarget.return_number || ('RET-' + deleteReturnTarget.id) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500 font-medium">Original Invoice #:</span>
+                <span class="font-mono font-bold text-red-600">{{ deleteReturnTarget.original_invoice?.invoice_number || deleteReturnTarget.original_invoice_number || 'N/A' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500 font-medium">Customer:</span>
+                <span class="font-bold text-slate-900">{{ deleteReturnTarget.customer?.name || deleteReturnTarget.customer_name || 'Walk-in Customer' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500 font-medium">Return Date:</span>
+                <span class="font-mono font-bold text-slate-800">{{ formatDateTime(deleteReturnTarget.created_at) }}</span>
+              </div>
 
-            <!-- Returned Items Summary -->
-            <div v-if="deleteReturnTarget.items && deleteReturnTarget.items.length > 0" class="pt-2 border-t border-slate-200">
-              <span class="text-slate-500 font-bold block mb-1">Returned Items:</span>
-              <div class="space-y-1 max-h-32 overflow-y-auto">
-                <div v-for="item in deleteReturnTarget.items" :key="item.id" class="flex justify-between bg-white p-2 rounded-lg border border-slate-200 font-mono text-[11px]">
-                  <span>{{ item.product_name || 'Item' }} ({{ item.color || '' }} {{ item.size ? 'IND ' + item.size : '' }}) × {{ item.quantity }}</span>
-                  <span class="font-bold text-slate-900">₹{{ formatCurrency(item.subtotal || (item.quantity * item.refund_unit_price)) }}</span>
+              <!-- Returned Items Summary -->
+              <div v-if="deleteReturnTarget.items && deleteReturnTarget.items.length > 0" class="pt-2 border-t border-slate-200">
+                <span class="text-slate-500 font-bold block mb-1">Returned Items:</span>
+                <div class="space-y-1 max-h-32 overflow-y-auto">
+                  <div v-for="item in deleteReturnTarget.items" :key="item.id" class="flex justify-between bg-white p-2 rounded-lg border border-slate-200 font-mono text-[11px]">
+                    <span>{{ item.product_name || 'Item' }} ({{ item.color || '' }} {{ item.size ? 'IND ' + item.size : '' }}) × {{ item.quantity }}</span>
+                    <span class="font-bold text-slate-900">₹{{ formatCurrency(item.subtotal || (item.quantity * item.refund_unit_price)) }}</span>
+                  </div>
                 </div>
+              </div>
+
+              <div class="flex justify-between border-t border-slate-200 pt-2">
+                <span class="text-slate-500 font-medium">Return Amount:</span>
+                <span class="font-mono font-black text-amber-700 text-sm">₹{{ formatCurrency(deleteReturnTarget.total_refund_amount) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500 font-medium">Refund Mode:</span>
+                <span class="font-bold uppercase text-purple-700">{{ deleteReturnTarget.refund_mode }}</span>
               </div>
             </div>
 
-            <div class="flex justify-between border-t border-slate-200 pt-2">
-              <span class="text-slate-500 font-medium">Return Amount:</span>
-              <span class="font-mono font-black text-amber-700 text-sm">₹{{ formatCurrency(deleteReturnTarget.total_refund_amount) }}</span>
+            <div class="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 space-y-1">
+              <span class="font-black block">⚠️ Warning:</span>
+              <p class="font-medium text-[11px] leading-relaxed">
+                This action will permanently remove this return transaction and reverse its related inventory/financial effects.
+              </p>
             </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500 font-medium">Refund Mode:</span>
-              <span class="font-bold uppercase text-purple-700">{{ deleteReturnTarget.refund_mode }}</span>
+
+            <div v-if="deleteError" class="p-3 bg-red-50 border border-red-200 rounded-2xl font-bold text-red-700 leading-relaxed">
+              {{ deleteError }}
             </div>
           </div>
 
-          <div class="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 space-y-1">
-            <span class="font-black block">⚠️ Warning:</span>
-            <p class="font-medium text-[11px] leading-relaxed">
-              This action will permanently remove this return transaction and reverse its related inventory/financial effects.
-            </p>
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button
+              @click="deleteReturnTarget = null"
+              :disabled="isDeleting"
+              class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+
+            <button
+              @click="executeDeleteReturn"
+              :disabled="isDeleting"
+              class="px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-md shadow-red-600/20 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <span v-if="isDeleting" class="animate-spin">⏳</span>
+              <span>{{ isDeleting ? 'Reversing Return...' : 'Delete Return' }}</span>
+            </button>
           </div>
-
-          <div v-if="deleteError" class="p-3 bg-red-50 border border-red-200 rounded-2xl font-bold text-red-700 leading-relaxed">
-            {{ deleteError }}
-          </div>
-        </div>
-
-        <div class="flex items-center justify-end gap-3 pt-2">
-          <button
-            @click="deleteReturnTarget = null"
-            :disabled="isDeleting"
-            class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors"
-          >
-            Cancel
-          </button>
-
-          <button
-            @click="executeDeleteReturn"
-            :disabled="isDeleting"
-            class="px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-md shadow-red-600/20 transition-all flex items-center gap-2"
-          >
-            <span v-if="isDeleting" class="animate-spin">⏳</span>
-            <span>{{ isDeleting ? 'Reversing Return...' : 'Delete Return' }}</span>
-          </button>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- SALES RETURN THERMAL RECEIPT MODAL -->
-    <div v-if="receiptReturn" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-sm w-full p-6 space-y-4">
-        <!-- Header -->
-        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-          <span class="font-black text-xs text-slate-900 uppercase">Sales Return Receipt Preview</span>
-          <button @click="receiptReturn = null" class="text-slate-400 hover:text-slate-800 font-bold">✕</button>
-        </div>
+    <Teleport to="body">
+      <div v-if="receiptReturn" class="fixed inset-0 z-[500] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-sm w-full p-6 space-y-4">
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+            <span class="font-black text-xs text-slate-900 uppercase">Sales Return Receipt Preview</span>
+            <button @click="receiptReturn = null" class="text-slate-400 hover:text-slate-800 font-bold cursor-pointer">✕</button>
+          </div>
 
-        <!-- Receipt Print Container -->
-        <div class="p-2 bg-slate-100 rounded-2xl border border-slate-200 overflow-x-auto flex justify-center">
-          <ThermalReceipt document-type="return" :data="receiptReturn" />
-        </div>
+          <!-- Receipt Print Container -->
+          <div class="p-2 bg-slate-100 rounded-2xl border border-slate-200 overflow-x-auto flex justify-center">
+            <ThermalReceipt document-type="return" :data="receiptReturn" />
+          </div>
 
-        <div class="flex justify-end gap-2 pt-2 border-t border-slate-200">
-          <button @click="receiptReturn = null" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs">
-            Close
-          </button>
-          <button @click="printReceipt" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-xs shadow-md">
-            🖨️ Print Receipt
-          </button>
+          <div class="flex justify-end gap-2 pt-2 border-t border-slate-200">
+            <button @click="receiptReturn = null" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs cursor-pointer">
+              Close
+            </button>
+            <button @click="printReceipt" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-xs shadow-md cursor-pointer">
+              🖨️ Print Receipt
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch, onUnmounted, nextTick } from 'vue';
 import api from '../../services/api';
+import { usePrinterStore } from '../../stores/printerStore';
 import ThermalReceipt from '../../components/printing/ThermalReceipt.vue';
 import MobileListCard from '../../components/ui/MobileListCard.vue';
 
+const printerStore = usePrinterStore();
 const returnsList = ref([]);
 const loading = ref(false);
 const error = ref(null);
@@ -575,10 +586,17 @@ const deleteError = ref(null);
 
 function openThermalReceipt(ret) {
   receiptReturn.value = ret;
+  if (!printerStore.loaded) {
+    printerStore.fetchSettings();
+  }
 }
 
 function printReceipt() {
-  window.print();
+  nextTick(() => {
+    setTimeout(() => {
+      window.print();
+    }, 150);
+  });
 }
 
 function confirmDeleteReturn(ret) {
@@ -758,5 +776,24 @@ async function submitReturn() {
 
 onMounted(() => {
   fetchReturns(1);
+  if (!printerStore.loaded) {
+    printerStore.fetchSettings();
+  }
+});
+
+watch(
+  [showWizard, selectedReturn, deleteReturnTarget, receiptReturn],
+  (modalStates) => {
+    const isAnyOpen = modalStates.some(Boolean);
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = isAnyOpen ? 'hidden' : '';
+    }
+  }
+);
+
+onUnmounted(() => {
+  if (typeof document !== 'undefined') {
+    document.body.style.overflow = '';
+  }
 });
 </script>

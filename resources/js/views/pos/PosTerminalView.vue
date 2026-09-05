@@ -633,10 +633,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useAuth } from '../../composables/useAuth';
+import { usePrinterStore } from '../../stores/printerStore';
 import api from '../../services/api';
 import ThermalReceipt from '../../components/printing/ThermalReceipt.vue';
 
 const { user: activeUser, isSuperAdmin, hasPermission } = useAuth();
+const printerStore = usePrinterStore();
 
 const articleInputRef = ref(null);
 
@@ -979,6 +981,13 @@ async function submitSale() {
       cashChange: Math.max(0, cashChange.value),
     };
 
+    // Ensure printer settings are 100% loaded before triggering print
+    try {
+      await printerStore.fetchSettings();
+    } catch (e) {
+      // Ignore print settings load errors
+    }
+
     showSuccessModal.value = true;
     triggerPrintReceipt();
   } catch (err) {
@@ -992,7 +1001,9 @@ async function submitSale() {
 
 function triggerPrintReceipt() {
   nextTick(() => {
-    window.print();
+    setTimeout(() => {
+      window.print();
+    }, 150);
   });
 }
 
@@ -1022,5 +1033,6 @@ function focusArticleInput() {
 
 onMounted(() => {
   checkRegisterSession();
+  printerStore.fetchSettings();
 });
 </script>

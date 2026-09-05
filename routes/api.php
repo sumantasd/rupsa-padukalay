@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\v1\AuthController;
 use App\Http\Controllers\Api\v1\BrandController;
 use App\Http\Controllers\Api\v1\CategoryController;
 use App\Http\Controllers\Api\v1\ColorController;
+use App\Http\Controllers\Api\v1\CompanyProfileController;
 use App\Http\Controllers\Api\v1\CustomerController;
 use App\Http\Controllers\Api\v1\CustomerAnalyticsController;
 use App\Http\Controllers\Api\v1\HsnCodeController;
@@ -51,6 +52,14 @@ use App\Http\Controllers\Api\v1\CashDrawerController;
 use App\Http\Controllers\Api\v1\DayClosingController;
 use App\Http\Controllers\Api\v1\ModuleSettingController;
 use App\Http\Controllers\Api\v1\ReportPdfController;
+use App\Http\Controllers\Api\v1\UserController;
+use App\Http\Controllers\Api\v1\RoleController;
+use App\Http\Controllers\Api\v1\StoreAccessController;
+use App\Http\Controllers\Api\v1\InvoiceSettingController;
+use App\Http\Controllers\Api\v1\PaymentMethodSettingController;
+use App\Http\Controllers\Api\v1\PosSettingController;
+use App\Http\Controllers\Api\v1\NumberSeriesSettingController;
+use App\Http\Controllers\Api\v1\GeneralSettingController;
 use App\Http\Controllers\Api\v1\WarehouseController;
 use Illuminate\Support\Facades\Route;
 
@@ -67,12 +76,15 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('me', [AuthController::class, 'me']);
+            Route::put('profile', [AuthController::class, 'updateProfile']);
+            Route::put('change-password', [AuthController::class, 'changePassword']);
             Route::post('logout', [AuthController::class, 'logout']);
         });
     });
 
     // Public Website Dynamic Settings & Catalog API (Unauthenticated)
     Route::get('public/website-settings', [\App\Http\Controllers\Api\v1\FrontWebsiteSettingController::class, 'getPublicSettings']);
+    Route::get('public/company-profile', [CompanyProfileController::class, 'show']);
     Route::get('public/categories', [\App\Http\Controllers\Api\v1\CategoryController::class, 'index']);
     Route::get('public/brands', [\App\Http\Controllers\Api\v1\BrandController::class, 'index']);
     Route::get('public/products', [\App\Http\Controllers\Api\v1\ProductController::class, 'index']);
@@ -175,40 +187,41 @@ Route::prefix('v1')->group(function () {
         Route::middleware('permission:products.create|procurement.view')->post('purchases/returns', [PurchaseReturnController::class, 'store']);
 
         // POS Session Management API
-        Route::middleware('permission:products.view')->get('pos/sessions', [PosSessionController::class, 'index']);
-        Route::middleware('permission:products.view')->get('pos/sessions/current', [PosSessionController::class, 'current']);
-        Route::middleware('permission:products.view')->get('pos/sessions/{id}', [PosSessionController::class, 'show']);
-        Route::middleware('permission:products.create')->post('pos/sessions', [PosSessionController::class, 'open']);
-        Route::middleware('permission:products.edit')->post('pos/sessions/{id}/close', [PosSessionController::class, 'close']);
+        Route::middleware('permission:products.view|pos.sessions|pos.billing')->get('pos/sessions', [PosSessionController::class, 'index']);
+        Route::middleware('permission:products.view|pos.sessions|pos.billing')->get('pos/sessions/current', [PosSessionController::class, 'current']);
+        Route::middleware('permission:products.view|pos.sessions|pos.billing')->get('pos/sessions/{id}', [PosSessionController::class, 'show']);
+        Route::middleware('permission:products.create|pos.sessions|pos.billing')->post('pos/sessions', [PosSessionController::class, 'open']);
+        Route::middleware('permission:products.edit|pos.sessions|pos.billing')->post('pos/sessions/{id}/close', [PosSessionController::class, 'close']);
 
         // POS Billing, Split Payment, Invoice Receipt, Sales Return & Exchange API
-        Route::middleware('permission:products.view')->get('pos/sales', [PosSaleController::class, 'index']);
-        Route::middleware('permission:products.view')->get('pos/sales/returns', [SalesReturnController::class, 'index']);
-        Route::middleware('permission:products.view')->get('pos/sales/returns/{id}', [SalesReturnController::class, 'show']);
-        Route::middleware('permission:products.view')->get('pos/exchanges', [ExchangeController::class, 'index']);
-        Route::middleware('permission:products.view')->get('pos/sales/exchanges', [ExchangeController::class, 'index']);
-        Route::middleware('permission:products.view')->get('pos/exchanges/{id}', [ExchangeController::class, 'show']);
-        Route::middleware('permission:products.view')->get('pos/sync-conflicts', [PosSyncConflictController::class, 'index']);
-        Route::middleware('permission:products.view')->get('pos/sync-conflicts/{id}', [PosSyncConflictController::class, 'show']);
-        Route::middleware('permission:products.edit')->post('pos/sync-conflicts/{id}/resolve', [PosSyncConflictController::class, 'resolve']);
-        Route::middleware('permission:products.view')->get('pos/sales/{id}', [PosSaleController::class, 'show']);
-        Route::middleware('permission:products.view')->get('pos/sales/{id}/invoice', [PosSaleController::class, 'getInvoice']);
-        Route::middleware('permission:products.create')->post('pos/sales/sync', [OfflineSyncController::class, 'sync']);
-        Route::middleware('permission:products.create')->post('pos/sales', [PosSaleController::class, 'store']);
-        Route::middleware('permission:products.view')->get('pos/sales/{id}/payments', [PosSaleController::class, 'getPayments']);
-        Route::middleware('permission:products.create')->post('pos/sales/{id}/payments', [PosSaleController::class, 'storePayments']);
-        Route::middleware('permission:products.edit')->post('pos/sales/{id}/return', [SalesReturnController::class, 'store']);
-        Route::middleware('permission:products.edit')->post('pos/sales/{id}/exchange', [ExchangeController::class, 'store']);
-        Route::middleware('permission:products.delete|sales.delete')->delete('pos/sales/{id}', [PosSaleController::class, 'destroy']);
-        Route::middleware('permission:sales_returns.delete|sales.delete|products.delete')->delete('pos/sales/returns/{id}', [SalesReturnController::class, 'destroy']);
+        Route::middleware('permission:products.view|pos.billing|sales.view')->get('pos/sales', [PosSaleController::class, 'index']);
+        Route::middleware('permission:products.view|pos.returns|sales_returns.view')->get('pos/sales/returns', [SalesReturnController::class, 'index']);
+        Route::middleware('permission:products.view|pos.returns|sales_returns.view')->get('pos/sales/returns/{id}', [SalesReturnController::class, 'show']);
+        Route::middleware('permission:products.view|pos.exchanges|exchanges.view')->get('pos/exchanges', [ExchangeController::class, 'index']);
+        Route::middleware('permission:products.view|pos.exchanges|exchanges.view')->get('pos/sales/exchanges', [ExchangeController::class, 'index']);
+        Route::middleware('permission:products.view|pos.exchanges|exchanges.view')->get('pos/exchanges/{id}', [ExchangeController::class, 'show']);
+        Route::middleware('permission:products.view|pos.billing')->get('pos/sync-conflicts', [PosSyncConflictController::class, 'index']);
+        Route::middleware('permission:products.view|pos.billing')->get('pos/sync-conflicts/{id}', [PosSyncConflictController::class, 'show']);
+        Route::middleware('permission:products.edit|pos.billing')->post('pos/sync-conflicts/{id}/resolve', [PosSyncConflictController::class, 'resolve']);
+        Route::middleware('permission:products.view|pos.billing|sales.view')->get('pos/sales/{id}', [PosSaleController::class, 'show']);
+        Route::middleware('permission:products.view|pos.billing|sales.view')->get('pos/sales/{id}/invoice', [PosSaleController::class, 'getInvoice']);
+        Route::middleware('permission:products.create|pos.billing')->post('pos/sales/sync', [OfflineSyncController::class, 'sync']);
+        Route::middleware('permission:products.create|pos.billing')->post('pos/sales', [PosSaleController::class, 'store']);
+        Route::middleware('permission:products.view|pos.billing')->get('pos/sales/{id}/payments', [PosSaleController::class, 'getPayments']);
+        Route::middleware('permission:products.create|pos.billing')->post('pos/sales/{id}/payments', [PosSaleController::class, 'storePayments']);
+        Route::middleware('permission:products.edit|pos.returns|pos.billing')->post('pos/sales/{id}/return', [SalesReturnController::class, 'store']);
+        Route::middleware('permission:products.edit|pos.exchanges|pos.billing')->post('pos/sales/{id}/exchange', [ExchangeController::class, 'store']);
+        Route::middleware('permission:sales.delete')->delete('pos/sales/{id}', [PosSaleController::class, 'destroy']);
+        Route::middleware('permission:sales_returns.delete')->delete('pos/sales/returns/{id}', [SalesReturnController::class, 'destroy']);
+        Route::middleware('permission:exchanges.delete')->delete('pos/exchanges/{id}', [ExchangeController::class, 'destroy']);
 
         // Expense Management API
-        Route::middleware('permission:products.view')->get('expenses', [ExpenseController::class, 'index']);
-        Route::middleware('permission:products.view')->get('expense-categories', [ExpenseController::class, 'categories']);
-        Route::middleware('permission:products.view')->get('expenses/{id}', [ExpenseController::class, 'show']);
-        Route::middleware('permission:products.create')->post('expenses', [ExpenseController::class, 'store']);
-        Route::middleware('permission:products.edit')->put('expenses/{id}', [ExpenseController::class, 'update']);
-        Route::middleware('permission:products.edit')->delete('expenses/{id}', [ExpenseController::class, 'destroy']);
+        Route::middleware('permission:products.view|expenses.view')->get('expenses', [ExpenseController::class, 'index']);
+        Route::middleware('permission:products.view|expenses.view')->get('expense-categories', [ExpenseController::class, 'categories']);
+        Route::middleware('permission:products.view|expenses.view')->get('expenses/{id}', [ExpenseController::class, 'show']);
+        Route::middleware('permission:products.create|expenses.create')->post('expenses', [ExpenseController::class, 'store']);
+        Route::middleware('permission:products.edit|expenses.create')->put('expenses/{id}', [ExpenseController::class, 'update']);
+        Route::middleware('permission:products.edit|expenses.create')->delete('expenses/{id}', [ExpenseController::class, 'destroy']);
 
         // Unified Payments, Refunds, Cash Drawer & Day Closing API
         Route::middleware('permission:products.view|pos.billing|payments.view')->get('payments/collections', [PaymentCollectionController::class, 'index']);
@@ -228,26 +241,26 @@ Route::prefix('v1')->group(function () {
         Route::middleware('permission:products.create|day_closing.reopen|roles.manage')->post('payments/day-closing/{id}/reopen', [DayClosingController::class, 'reopen']);
 
         // Executive Dashboard & KPI Summary API
-        Route::middleware('permission:products.view')->get('dashboard/executive-kpi', [ExecutiveDashboardController::class, 'executiveKpi']);
-        Route::middleware('permission:products.view')->get('dashboard/sales-trend', [ExecutiveDashboardController::class, 'salesTrend']);
-        Route::middleware('permission:products.view')->get('dashboard/store-performance', [ExecutiveDashboardController::class, 'storePerformance']);
-        Route::middleware('permission:products.view')->get('dashboard/product-performance', [ExecutiveDashboardController::class, 'productPerformance']);
-        Route::middleware('permission:products.view')->get('dashboard/inventory-kpi', [ExecutiveDashboardController::class, 'inventoryKpi']);
-        Route::middleware('permission:products.view')->get('dashboard/pos-register-kpi', [ExecutiveDashboardController::class, 'posRegisterKpi']);
-        Route::middleware('permission:products.view')->get('dashboard/customer-kpi', [ExecutiveDashboardController::class, 'customerKpi']);
+        Route::middleware('permission:products.view|reports.view')->get('dashboard/executive-kpi', [ExecutiveDashboardController::class, 'executiveKpi']);
+        Route::middleware('permission:products.view|reports.view')->get('dashboard/sales-trend', [ExecutiveDashboardController::class, 'salesTrend']);
+        Route::middleware('permission:products.view|reports.view')->get('dashboard/store-performance', [ExecutiveDashboardController::class, 'storePerformance']);
+        Route::middleware('permission:products.view|reports.view')->get('dashboard/product-performance', [ExecutiveDashboardController::class, 'productPerformance']);
+        Route::middleware('permission:products.view|reports.view')->get('dashboard/inventory-kpi', [ExecutiveDashboardController::class, 'inventoryKpi']);
+        Route::middleware('permission:products.view|reports.view')->get('dashboard/pos-register-kpi', [ExecutiveDashboardController::class, 'posRegisterKpi']);
+        Route::middleware('permission:products.view|reports.view')->get('dashboard/customer-kpi', [ExecutiveDashboardController::class, 'customerKpi']);
 
         // Multi-Store Consolidated Financial & Tax Reporting API
-        Route::middleware('permission:products.view')->get('financial-reports/consolidated-sales', [FinancialReportController::class, 'consolidatedSales']);
-        Route::middleware('permission:products.view')->get('financial-reports/profit-loss', [FinancialReportController::class, 'profitLoss']);
-        Route::middleware('permission:products.view')->get('financial-reports/gst-liability', [FinancialReportController::class, 'gstLiability']);
+        Route::middleware('permission:reports.view|products.view')->get('financial-reports/consolidated-sales', [FinancialReportController::class, 'consolidatedSales']);
+        Route::middleware('permission:reports.view|products.view')->get('financial-reports/profit-loss', [FinancialReportController::class, 'profitLoss']);
+        Route::middleware('permission:reports.view|products.view')->get('financial-reports/gst-liability', [FinancialReportController::class, 'gstLiability']);
 
         // Store-Level Audit Log & Financial Audit Trail API
-        Route::middleware('permission:products.view')->get('audit-logs', [AuditLogController::class, 'index']);
-        Route::middleware('permission:products.view')->get('audit-logs/financial-trail', [AuditLogController::class, 'financialTrail']);
-        Route::middleware('permission:products.view')->get('audit-logs/entity/{type}/{id}', [AuditLogController::class, 'entityHistory']);
-        Route::middleware('permission:products.view')->get('audit-logs/user/{userId}', [AuditLogController::class, 'userActivity']);
-        Route::middleware('permission:products.view')->get('audit-logs/store/{storeId}', [AuditLogController::class, 'storeHistory']);
-        Route::middleware('permission:products.view')->get('audit-logs/{id}', [AuditLogController::class, 'show']);
+        Route::middleware('permission:audit.view|products.view')->get('audit-logs', [AuditLogController::class, 'index']);
+        Route::middleware('permission:audit.view|products.view')->get('audit-logs/financial-trail', [AuditLogController::class, 'financialTrail']);
+        Route::middleware('permission:audit.view|products.view')->get('audit-logs/entity/{type}/{id}', [AuditLogController::class, 'entityHistory']);
+        Route::middleware('permission:audit.view|products.view')->get('audit-logs/user/{userId}', [AuditLogController::class, 'userActivity']);
+        Route::middleware('permission:audit.view|products.view')->get('audit-logs/store/{storeId}', [AuditLogController::class, 'storeHistory']);
+        Route::middleware('permission:audit.view|products.view')->get('audit-logs/{id}', [AuditLogController::class, 'show']);
 
         // Admin Reports Foundation API
         Route::middleware('permission:products.view|reports.view')->get('reports/sales-summary', [ReportController::class, 'salesSummary']);
@@ -263,8 +276,31 @@ Route::prefix('v1')->group(function () {
         Route::middleware('permission:products.view|reports.view')->get('reports/date-wise-profit-loss', [ReportController::class, 'dateWiseProfitLoss']);
         Route::middleware('permission:products.view|reports.view')->get('reports/pdf', [ReportPdfController::class, 'export']);
 
+        // Users & Access Control API
+        Route::middleware('permission:users.view|users.manage')->get('users', [UserController::class, 'index']);
+        Route::middleware('permission:users.create|users.manage')->post('users', [UserController::class, 'store']);
+        Route::middleware('permission:users.view|users.manage')->get('users/{id}', [UserController::class, 'show']);
+        Route::middleware('permission:users.edit|users.manage')->put('users/{id}', [UserController::class, 'update']);
+        Route::middleware('permission:users.delete|users.manage')->delete('users/{id}', [UserController::class, 'destroy']);
+        Route::middleware('permission:users.edit|users.manage')->patch('users/{id}/status', [UserController::class, 'toggleStatus']);
+        Route::middleware('permission:users.edit|users.manage')->post('users/{id}/reset-password', [UserController::class, 'resetPassword']);
+
+        // Roles & Permissions API
+        Route::middleware('permission:roles.manage|users.manage')->get('roles', [RoleController::class, 'index']);
+        Route::middleware('permission:roles.manage')->get('permissions', [RoleController::class, 'permissions']);
+        Route::middleware('permission:roles.manage')->post('roles', [RoleController::class, 'store']);
+        Route::middleware('permission:roles.manage')->get('roles/{id}', [RoleController::class, 'show']);
+        Route::middleware('permission:roles.manage')->put('roles/{id}', [RoleController::class, 'update']);
+        Route::middleware('permission:roles.manage')->delete('roles/{id}', [RoleController::class, 'destroy']);
+
+        // Store Access API
+        Route::middleware('permission:stores.manage|users.manage')->get('store-access', [StoreAccessController::class, 'index']);
+        Route::middleware('permission:stores.manage|users.manage')->post('store-access/assign/{userId}', [StoreAccessController::class, 'assignStoreAccess']);
+
         // Stores API
-        Route::middleware('permission:users.manage')->get('stores', [StoreController::class, 'index']);
+        Route::middleware('permission:users.manage|stores.manage|stores.view|reports.view')->get('stores', [StoreController::class, 'index']);
+        Route::middleware('permission:reports.view|stores.manage|stores.view|users.manage')->get('stores/performance', [StoreController::class, 'performanceOverview']);
+        Route::middleware(['permission:reports.view|stores.manage|stores.view|users.manage', 'store.access'])->get('stores/{id}/performance', [StoreController::class, 'performance']);
         Route::middleware(['permission:users.manage', 'store.access'])->get('stores/{id}', [StoreController::class, 'show']);
         Route::middleware('permission:users.manage')->post('stores', [StoreController::class, 'store']);
         Route::middleware(['permission:users.manage', 'store.access'])->put('stores/{id}', [StoreController::class, 'update']);
@@ -359,43 +395,43 @@ Route::prefix('v1')->group(function () {
         Route::middleware('permission:products.edit')->put('tax-rates/{id}', [TaxRateController::class, 'update']);
 
         // Tax Settings API
-        Route::middleware('permission:products.view')->get('tax-settings', [TaxSettingController::class, 'index']);
-        Route::middleware('permission:products.edit')->put('tax-settings', [TaxSettingController::class, 'update']);
+        Route::middleware('permission:products.view|system.settings')->get('tax-settings', [TaxSettingController::class, 'index']);
+        Route::middleware('permission:products.edit|system.settings')->put('tax-settings', [TaxSettingController::class, 'update']);
 
         // Module Settings API
-        Route::middleware('permission:products.view')->get('module-settings', [ModuleSettingController::class, 'index']);
-        Route::middleware('permission:products.view')->put('module-settings', [ModuleSettingController::class, 'update']);
+        Route::middleware('permission:products.view|system.settings')->get('module-settings', [ModuleSettingController::class, 'index']);
+        Route::middleware('permission:products.edit|system.settings')->put('module-settings', [ModuleSettingController::class, 'update']);
 
         // Front Website Settings API (Admin)
-        Route::middleware('permission:products.view')->get('website-settings', [\App\Http\Controllers\Api\v1\FrontWebsiteSettingController::class, 'getAdminSettings']);
-        Route::middleware('permission:products.edit')->put('website-settings', [\App\Http\Controllers\Api\v1\FrontWebsiteSettingController::class, 'updateSettings']);
-        Route::middleware('permission:products.edit')->post('website-settings/logo', [\App\Http\Controllers\Api\v1\FrontWebsiteSettingController::class, 'uploadLogo']);
-        Route::middleware('permission:products.edit')->post('website-settings/favicon', [\App\Http\Controllers\Api\v1\FrontWebsiteSettingController::class, 'uploadFavicon']);
-        Route::middleware('permission:products.edit')->post('website-settings/media', [\App\Http\Controllers\Api\v1\FrontWebsiteSettingController::class, 'uploadMedia']);
+        Route::middleware('permission:system.settings')->get('website-settings', [\App\Http\Controllers\Api\v1\FrontWebsiteSettingController::class, 'getAdminSettings']);
+        Route::middleware('permission:system.settings')->put('website-settings', [\App\Http\Controllers\Api\v1\FrontWebsiteSettingController::class, 'updateSettings']);
+        Route::middleware('permission:system.settings')->post('website-settings/logo', [\App\Http\Controllers\Api\v1\FrontWebsiteSettingController::class, 'uploadLogo']);
+        Route::middleware('permission:system.settings')->post('website-settings/favicon', [\App\Http\Controllers\Api\v1\FrontWebsiteSettingController::class, 'uploadFavicon']);
+        Route::middleware('permission:system.settings')->post('website-settings/media', [\App\Http\Controllers\Api\v1\FrontWebsiteSettingController::class, 'uploadMedia']);
 
         // Promotions & Discount Engine API
-        Route::middleware('permission:products.view')->get('promotions', [PromotionController::class, 'index']);
+        Route::middleware('permission:products.view|pos.billing')->get('promotions', [PromotionController::class, 'index']);
         Route::middleware('permission:products.create')->post('promotions', [PromotionController::class, 'store']);
-        Route::middleware('permission:products.view')->post('promotions/evaluate', [PromotionController::class, 'evaluate']);
-        Route::middleware('permission:products.view')->get('promotions/{id}', [PromotionController::class, 'show']);
+        Route::middleware('permission:products.view|pos.billing')->post('promotions/evaluate', [PromotionController::class, 'evaluate']);
+        Route::middleware('permission:products.view|pos.billing')->get('promotions/{id}', [PromotionController::class, 'show']);
         Route::middleware('permission:products.edit')->put('promotions/{id}', [PromotionController::class, 'update']);
         Route::middleware('permission:products.edit')->delete('promotions/{id}', [PromotionController::class, 'destroy']);
 
         // Multi-Store POS Register & Drawer Management API
-        Route::middleware('permission:products.view')->get('pos/registers', [PosRegisterController::class, 'index']);
+        Route::middleware('permission:products.view|pos.sessions|pos.billing')->get('pos/registers', [PosRegisterController::class, 'index']);
         Route::middleware('permission:products.create')->post('pos/registers', [PosRegisterController::class, 'store']);
-        Route::middleware('permission:products.view')->get('pos/registers/cash-movements', [PosRegisterController::class, 'cashMovements']);
-        Route::middleware('permission:products.create')->post('pos/registers/cash-in', [PosRegisterController::class, 'recordCashMovement']);
-        Route::middleware('permission:products.create')->post('pos/registers/cash-out', [PosRegisterController::class, 'recordCashMovement']);
-        Route::middleware('permission:products.create')->post('pos/registers/drawer-drop', [PosRegisterController::class, 'recordCashMovement']);
-        Route::middleware('permission:products.view')->get('pos/registers/{id}', [PosRegisterController::class, 'show']);
+        Route::middleware('permission:products.view|pos.sessions|pos.billing')->get('pos/registers/cash-movements', [PosRegisterController::class, 'cashMovements']);
+        Route::middleware('permission:products.create|pos.sessions|pos.billing')->post('pos/registers/cash-in', [PosRegisterController::class, 'recordCashMovement']);
+        Route::middleware('permission:products.create|pos.sessions|pos.billing')->post('pos/registers/cash-out', [PosRegisterController::class, 'recordCashMovement']);
+        Route::middleware('permission:products.create|pos.sessions|pos.billing')->post('pos/registers/drawer-drop', [PosRegisterController::class, 'recordCashMovement']);
+        Route::middleware('permission:products.view|pos.sessions|pos.billing')->get('pos/registers/{id}', [PosRegisterController::class, 'show']);
         Route::middleware('permission:products.edit')->put('pos/registers/{id}', [PosRegisterController::class, 'update']);
         Route::middleware('permission:products.edit')->patch('pos/registers/{id}/status', [PosRegisterController::class, 'toggleStatus']);
         Route::middleware('permission:products.edit')->post('pos/registers/{id}/assign', [PosRegisterController::class, 'assign']);
-        Route::middleware('permission:products.create')->post('pos/registers/{id}/open', [PosRegisterController::class, 'open']);
-        Route::middleware('permission:products.view')->get('pos/registers/{id}/current-session', [PosRegisterController::class, 'currentSession']);
-        Route::middleware('permission:products.edit')->post('pos/registers/{id}/close', [PosRegisterController::class, 'close']);
-        Route::middleware('permission:products.view')->get('pos/registers/{id}/reconciliations', [PosRegisterController::class, 'reconciliations']);
+        Route::middleware('permission:products.create|pos.sessions|pos.billing')->post('pos/registers/{id}/open', [PosRegisterController::class, 'open']);
+        Route::middleware('permission:products.view|pos.sessions|pos.billing')->get('pos/registers/{id}/current-session', [PosRegisterController::class, 'currentSession']);
+        Route::middleware('permission:products.edit|pos.sessions|pos.billing')->post('pos/registers/{id}/close', [PosRegisterController::class, 'close']);
+        Route::middleware('permission:products.view|pos.sessions|pos.billing')->get('pos/registers/{id}/reconciliations', [PosRegisterController::class, 'reconciliations']);
 
         // Customer Purchase History & Analytics API
         Route::middleware('permission:products.view')->get('customers/{id}/purchase-history', [CustomerAnalyticsController::class, 'purchaseHistory']);
@@ -409,10 +445,41 @@ Route::prefix('v1')->group(function () {
         Route::middleware('permission:products.view')->get('suppliers/{id}/performance-analytics', [SupplierAnalyticsController::class, 'performanceAnalytics']);
 
         // Centralized Thermal Printer Settings API
-        Route::middleware('permission:products.view')->get('settings/printer', [PrinterSettingController::class, 'getSettings']);
-        Route::middleware('permission:products.edit')->post('settings/printer', [PrinterSettingController::class, 'updateSettings']);
-        Route::middleware('permission:products.edit')->post('settings/printer/logo', [PrinterSettingController::class, 'uploadLogo']);
-        Route::middleware('permission:products.edit')->delete('settings/printer/logo', [PrinterSettingController::class, 'deleteLogo']);
-        Route::middleware('permission:products.view')->post('settings/printer/test-print', [PrinterSettingController::class, 'testPrintData']);
+        Route::middleware('permission:system.settings|pos.billing|pos.sessions|products.view')->get('settings/printer', [PrinterSettingController::class, 'getSettings']);
+        Route::middleware('permission:system.settings')->post('settings/printer', [PrinterSettingController::class, 'updateSettings']);
+        Route::middleware('permission:system.settings')->post('settings/printer/logo', [PrinterSettingController::class, 'uploadLogo']);
+        Route::middleware('permission:system.settings')->delete('settings/printer/logo', [PrinterSettingController::class, 'deleteLogo']);
+        Route::middleware('permission:system.settings|pos.billing|pos.sessions')->post('settings/printer/test-print', [PrinterSettingController::class, 'testPrintData']);
+
+        // Company Profile & Dual Branding Logo API
+        Route::middleware('permission:system.settings|pos.billing|pos.sessions|products.view')->get('settings/company', [CompanyProfileController::class, 'show']);
+        Route::middleware('permission:system.settings')->post('settings/company', [CompanyProfileController::class, 'update']);
+        Route::middleware('permission:system.settings')->post('settings/company/primary-logo', [CompanyProfileController::class, 'uploadPrimaryLogo']);
+        Route::middleware('permission:system.settings')->delete('settings/company/primary-logo', [CompanyProfileController::class, 'deletePrimaryLogo']);
+        Route::middleware('permission:system.settings')->post('settings/company/white-logo', [CompanyProfileController::class, 'uploadWhiteLogo']);
+        Route::middleware('permission:system.settings')->delete('settings/company/white-logo', [CompanyProfileController::class, 'deleteWhiteLogo']);
+
+        // Invoice Settings API
+        Route::middleware('permission:system.settings|invoice.settings')->get('settings/invoices', [InvoiceSettingController::class, 'getSettings']);
+        Route::middleware('permission:system.settings|invoice.settings')->post('settings/invoices', [InvoiceSettingController::class, 'updateSettings']);
+
+        // Payment Methods API
+        Route::middleware('permission:pos.billing|pos.sessions|products.view|system.settings')->get('payment-methods/active', [PaymentMethodSettingController::class, 'getActiveMethods']);
+        Route::middleware('permission:system.settings|payment_methods.manage')->get('settings/payment-methods', [PaymentMethodSettingController::class, 'index']);
+        Route::middleware('permission:system.settings|payment_methods.manage')->post('settings/payment-methods', [PaymentMethodSettingController::class, 'store']);
+        Route::middleware('permission:system.settings|payment_methods.manage')->put('settings/payment-methods/{id}', [PaymentMethodSettingController::class, 'update']);
+        Route::middleware('permission:system.settings|payment_methods.manage')->patch('settings/payment-methods/{id}/status', [PaymentMethodSettingController::class, 'toggleStatus']);
+
+        // POS Settings API
+        Route::middleware('permission:pos.billing|pos.sessions|system.settings')->get('settings/pos', [PosSettingController::class, 'getSettings']);
+        Route::middleware('permission:system.settings|pos.settings')->post('settings/pos', [PosSettingController::class, 'updateSettings']);
+
+        // Number Series Settings API
+        Route::middleware('permission:system.settings|number_series.manage')->get('settings/number-series', [NumberSeriesSettingController::class, 'getSettings']);
+        Route::middleware('permission:system.settings|number_series.manage')->post('settings/number-series', [NumberSeriesSettingController::class, 'updateSettings']);
+
+        // General Settings API
+        Route::middleware('permission:system.settings|general.settings')->get('settings/general', [GeneralSettingController::class, 'getSettings']);
+        Route::middleware('permission:system.settings|general.settings')->post('settings/general', [GeneralSettingController::class, 'updateSettings']);
     });
 });

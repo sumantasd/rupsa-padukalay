@@ -56,11 +56,21 @@ import PaymentReportsView from '../views/reports/PaymentReportsView.vue';
 import ProfitMarginView from '../views/reports/ProfitMarginView.vue';
 
 import StoreList from '../views/settings/StoreList.vue';
+import StorePerformanceView from '../views/settings/StorePerformanceView.vue';
 import UserList from '../views/settings/UserList.vue';
 import RoleList from '../views/settings/RoleList.vue';
+import StoreAccessView from '../views/settings/StoreAccessView.vue';
+import ProfileView from '../views/settings/ProfileView.vue';
 import ModuleSettingsView from '../views/settings/ModuleSettingsView.vue';
 import PrinterSettingsView from '../views/settings/PrinterSettingsView.vue';
 import InventorySettingsView from '../views/settings/InventorySettingsView.vue';
+import CompanyProfileView from '../views/settings/CompanyProfileView.vue';
+import InvoiceSettingsView from '../views/settings/InvoiceSettingsView.vue';
+import TaxSettingsView from '../views/settings/TaxSettingsView.vue';
+import PaymentMethodsSettingsView from '../views/settings/PaymentMethodsSettingsView.vue';
+import PosSettingsView from '../views/settings/PosSettingsView.vue';
+import NumberSeriesSettingsView from '../views/settings/NumberSeriesSettingsView.vue';
+import GeneralSettingsView from '../views/settings/GeneralSettingsView.vue';
 
 import WebsiteDashboardView from '../views/front_website/WebsiteDashboardView.vue';
 import FrontHomePageView from '../views/front_website/FrontHomePageView.vue';
@@ -92,27 +102,27 @@ const routes = [
         meta: { requiresAuth: true },
         children: [
             { path: '', redirect: '/admin/dashboard' },
-            { path: 'dashboard', name: 'admin-dashboard', component: ExecutiveDashboard, meta: { permission: 'products.view' } },
+            { path: 'dashboard', name: 'admin-dashboard', component: ExecutiveDashboard },
 
             // FRONT WEBSITE MANAGEMENT ROUTES (Dedicated Main Section)
-            { path: 'front-website', name: 'front-website-dashboard', component: WebsiteDashboardView, meta: { permission: 'products.view' } },
-            { path: 'front-website/home', name: 'front-website-home', component: FrontHomePageView, meta: { permission: 'products.view' } },
-            { path: 'front-website/about', name: 'front-website-about', component: FrontAboutPageView, meta: { permission: 'products.view' } },
-            { path: 'front-website/men', name: 'front-website-men', component: FrontCategoryPageView, meta: { permission: 'products.view' } },
-            { path: 'front-website/women', name: 'front-website-women', component: FrontCategoryPageView, meta: { permission: 'products.view' } },
-            { path: 'front-website/kids', name: 'front-website-kids', component: FrontCategoryPageView, meta: { permission: 'products.view' } },
-            { path: 'front-website/others', name: 'front-website-others', component: FrontCategoryPageView, meta: { permission: 'products.view' } },
-            { path: 'front-website/contact', name: 'front-website-contact', component: FrontContactPageView, meta: { permission: 'products.view' } },
-            { path: 'front-website/banners', name: 'front-website-banners', component: FrontBannersView, meta: { permission: 'products.view' } },
-            { path: 'front-website/header', name: 'front-website-header', component: FrontHeaderNavView, meta: { permission: 'products.view' } },
-            { path: 'front-website/footer', name: 'front-website-footer', component: FrontFooterView, meta: { permission: 'products.view' } },
-            { path: 'front-website/pages', name: 'front-website-pages', component: FrontPagesView, meta: { permission: 'products.view' } },
-            { path: 'front-website/content', name: 'front-website-content', component: FrontContentView, meta: { permission: 'products.view' } },
-            { path: 'front-website/testimonials', name: 'front-website-testimonials', component: FrontTestimonialsView, meta: { permission: 'products.view' } },
-            { path: 'front-website/faq', name: 'front-website-faq', component: FrontFaqView, meta: { permission: 'products.view' } },
-            { path: 'front-website/promotions', name: 'front-website-promotions', component: FrontPromotionsView, meta: { permission: 'products.view' } },
-            { path: 'front-website/social-links', name: 'front-website-social-links', component: FrontSocialLinksView, meta: { permission: 'products.view' } },
-            { path: 'front-website/settings', name: 'front-website-settings', component: FrontWebsiteSettingsView, meta: { permission: 'products.view' } },
+            { path: 'front-website', name: 'front-website-dashboard', component: WebsiteDashboardView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/home', name: 'front-website-home', component: FrontHomePageView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/about', name: 'front-website-about', component: FrontAboutPageView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/men', name: 'front-website-men', component: FrontCategoryPageView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/women', name: 'front-website-women', component: FrontCategoryPageView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/kids', name: 'front-website-kids', component: FrontCategoryPageView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/others', name: 'front-website-others', component: FrontCategoryPageView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/contact', name: 'front-website-contact', component: FrontContactPageView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/banners', name: 'front-website-banners', component: FrontBannersView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/header', name: 'front-website-header', component: FrontHeaderNavView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/footer', name: 'front-website-footer', component: FrontFooterView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/pages', name: 'front-website-pages', component: FrontPagesView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/content', name: 'front-website-content', component: FrontContentView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/testimonials', name: 'front-website-testimonials', component: FrontTestimonialsView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/faq', name: 'front-website-faq', component: FrontFaqView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/promotions', name: 'front-website-promotions', component: FrontPromotionsView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/social-links', name: 'front-website-social-links', component: FrontSocialLinksView, meta: { permission: 'system.settings' } },
+            { path: 'front-website/settings', name: 'front-website-settings', component: FrontWebsiteSettingsView, meta: { permission: 'system.settings' } },
 
             // Master Data Routes
             { path: 'products', name: 'products-list', component: ProductListView, meta: { permission: 'products.view' } },
@@ -135,9 +145,9 @@ const routes = [
             { path: 'suppliers/:id/edit', name: 'suppliers-edit', component: SupplierFormView, meta: { permission: 'suppliers.edit' } },
 
             // Sales & Billing Routes
-            { path: 'sales', name: 'sales-list', component: SalesInvoiceListView, meta: { permission: 'pos.billing' } },
-            { path: 'sales-returns', name: 'sales-returns', component: SalesReturnListView, meta: { permission: 'pos.returns' } },
-            { path: 'exchanges', name: 'exchanges-list', component: ExchangeListView, meta: { permission: 'pos.exchanges' } },
+            { path: 'sales', name: 'sales-list', component: SalesInvoiceListView, meta: { permission: 'sales.view|pos.billing' } },
+            { path: 'sales-returns', name: 'sales-returns', component: SalesReturnListView, meta: { permission: 'sales_returns.view|pos.returns' } },
+            { path: 'exchanges', name: 'exchanges-list', component: ExchangeListView, meta: { permission: 'exchanges.view|pos.exchanges' } },
 
             // Inventory Routes
             { path: 'inventory/stock', name: 'stock-overview', component: StockOverviewView, meta: { permission: 'inventory.view' } },
@@ -176,37 +186,38 @@ const routes = [
             { path: 'reports/profit-margin', name: 'reports-profit-margin', component: ProfitMarginView, meta: { permission: 'reports.view' } },
 
             // Store Management Routes
-            { path: 'stores', name: 'stores-list', component: StoreList, meta: { permission: 'stores.manage' } },
-            { path: 'stores/performance', name: 'stores-performance', component: PlaceholderView, props: { title: 'Store Performance', description: 'Store vs store revenue comparison', icon: '🎯' }, meta: { permission: 'reports.view' } },
+            { path: 'stores', name: 'stores-list', component: StoreList, meta: { permission: 'stores.manage|stores.view|users.manage' } },
+            { path: 'stores/performance', name: 'stores-performance', component: StorePerformanceView, meta: { permission: 'reports.view|stores.manage|stores.view|users.manage' } },
 
             // Access Control & Security Routes
             { path: 'users', name: 'users-list', component: UserList, meta: { permission: 'users.manage' } },
             { path: 'roles', name: 'roles-list', component: RoleList, meta: { permission: 'roles.manage' } },
-            { path: 'store-access', name: 'store-access', component: PlaceholderView, props: { title: 'Store Access Matrix', description: 'User to store assignment matrix', icon: '🔒' }, meta: { permission: 'users.manage' } },
+            { path: 'profile', name: 'my-profile', component: ProfileView },
+            { path: 'store-access', name: 'store-access', component: StoreAccessView, meta: { permission: 'stores.manage|users.manage' } },
             { path: 'audit', name: 'audit-log', component: AuditLogsView, meta: { permission: 'audit.view' } },
 
             // System Settings Routes
-            { path: 'settings/company', name: 'settings-company', component: PlaceholderView, props: { title: 'Company Profile', description: 'GSTIN, store logo & contact details', icon: '🏢' }, meta: { permission: 'system.settings' } },
-            { path: 'settings/invoices', name: 'settings-invoices', component: PlaceholderView, props: { title: 'Invoice Settings', description: 'Receipt print headers, terms & footers', icon: '🧾' }, meta: { permission: 'system.settings' } },
-            { path: 'settings/tax', name: 'settings-tax', component: PlaceholderView, props: { title: 'Tax Settings', description: 'GST rates, HSN mapping & tax rules', icon: '📑' }, meta: { permission: 'system.settings' } },
-            { path: 'settings/payment-methods', name: 'settings-payment-methods', component: PlaceholderView, props: { title: 'Payment Methods', description: 'MOP configurations & gateway credentials', icon: '💳' }, meta: { permission: 'system.settings' } },
-            { path: 'settings/pos', name: 'settings-pos', component: PlaceholderView, props: { title: 'POS Settings', description: 'Register behavior & discount caps', icon: '⚙️' }, meta: { permission: 'system.settings' } },
-            { path: 'settings/stock', name: 'settings-stock', component: InventorySettingsView, meta: { permission: 'system.settings' } },
-            { path: 'settings/printers', name: 'settings-printers', component: PrinterSettingsView, meta: { permission: 'system.settings' } },
-            { path: 'settings/number-series', name: 'settings-number-series', component: PlaceholderView, props: { title: 'Number Series', description: 'Sequential document numbering for sales & POs', icon: '🔢' }, meta: { permission: 'system.settings' } },
-            { path: 'settings/general', name: 'settings-general', component: PlaceholderView, props: { title: 'General Settings', description: 'Application timezone, currency formatting & defaults', icon: '🔧' }, meta: { permission: 'system.settings' } },
-            { path: 'settings/modules', name: 'settings-modules', component: ModuleSettingsView, meta: { permission: 'system.settings' } },
+            { path: 'settings/company', name: 'settings-company', component: CompanyProfileView, meta: { permission: 'system.settings|company.settings' } },
+            { path: 'settings/invoices', name: 'settings-invoices', component: InvoiceSettingsView, meta: { permission: 'system.settings|invoice.settings' } },
+            { path: 'settings/tax', name: 'settings-tax', component: TaxSettingsView, meta: { permission: 'system.settings|tax.settings' } },
+            { path: 'settings/payment-methods', name: 'settings-payment-methods', component: PaymentMethodsSettingsView, meta: { permission: 'system.settings|payment_methods.manage' } },
+            { path: 'settings/pos', name: 'settings-pos', component: PosSettingsView, meta: { permission: 'system.settings|pos.settings' } },
+            { path: 'settings/stock', name: 'settings-stock', component: InventorySettingsView, meta: { permission: 'system.settings|stock.settings' } },
+            { path: 'settings/printers', name: 'settings-printers', component: PrinterSettingsView, meta: { permission: 'system.settings|printer.settings' } },
+            { path: 'settings/number-series', name: 'settings-number-series', component: NumberSeriesSettingsView, meta: { permission: 'system.settings|number_series.manage' } },
+            { path: 'settings/general', name: 'settings-general', component: GeneralSettingsView, meta: { permission: 'system.settings|general.settings' } },
+            { path: 'settings/modules', name: 'settings-modules', component: ModuleSettingsView, meta: { permission: 'system.settings|module.settings' } },
             { path: 'settings/front-website', name: 'settings-front-website', component: FrontWebsiteSettingsView, meta: { permission: 'system.settings' } },
 
             // Front Website Central Management Routes
-            { path: 'front-website', name: 'front-website-dashboard', component: FrontWebsiteSettingsView, props: { initialTab: 'homepage' }, meta: { permission: 'products.view' } },
-            { path: 'front-website/home', name: 'front-website-home', component: FrontWebsiteSettingsView, props: { initialTab: 'homepage' }, meta: { permission: 'products.view' } },
-            { path: 'front-website/header-footer', name: 'front-website-header-footer', component: FrontWebsiteSettingsView, props: { initialTab: 'header_footer' }, meta: { permission: 'products.view' } },
-            { path: 'front-website/pages', name: 'front-website-pages', component: FrontWebsiteSettingsView, props: { initialTab: 'homepage', initialSubTab: 'full_banners' }, meta: { permission: 'products.view' } },
-            { path: 'front-website/banners', name: 'front-website-banners', component: FrontWebsiteSettingsView, props: { initialTab: 'homepage', initialSubTab: 'hero' }, meta: { permission: 'products.view' } },
-            { path: 'front-website/categories', name: 'front-website-categories', component: FrontWebsiteSettingsView, props: { initialTab: 'homepage', initialSubTab: 'categories' }, meta: { permission: 'products.view' } },
-            { path: 'front-website/brands', name: 'front-website-brands', component: FrontWebsiteSettingsView, props: { initialTab: 'homepage', initialSubTab: 'brands' }, meta: { permission: 'products.view' } },
-            { path: 'front-website/contact-info', name: 'front-website-contact-info', component: FrontWebsiteSettingsView, props: { initialTab: 'business' }, meta: { permission: 'products.view' } },
+            { path: 'front-website', name: 'front-website-dashboard', component: FrontWebsiteSettingsView, props: { initialTab: 'homepage' }, meta: { permission: 'system.settings' } },
+            { path: 'front-website/home', name: 'front-website-home', component: FrontWebsiteSettingsView, props: { initialTab: 'homepage' }, meta: { permission: 'system.settings' } },
+            { path: 'front-website/header-footer', name: 'front-website-header-footer', component: FrontWebsiteSettingsView, props: { initialTab: 'header_footer' }, meta: { permission: 'system.settings' } },
+            { path: 'front-website/pages', name: 'front-website-pages', component: FrontWebsiteSettingsView, props: { initialTab: 'homepage', initialSubTab: 'full_banners' }, meta: { permission: 'system.settings' } },
+            { path: 'front-website/banners', name: 'front-website-banners', component: FrontWebsiteSettingsView, props: { initialTab: 'homepage', initialSubTab: 'hero' }, meta: { permission: 'system.settings' } },
+            { path: 'front-website/categories', name: 'front-website-categories', component: FrontWebsiteSettingsView, props: { initialTab: 'homepage', initialSubTab: 'categories' }, meta: { permission: 'system.settings' } },
+            { path: 'front-website/brands', name: 'front-website-brands', component: FrontWebsiteSettingsView, props: { initialTab: 'homepage', initialSubTab: 'brands' }, meta: { permission: 'system.settings' } },
+            { path: 'front-website/contact-info', name: 'front-website-contact-info', component: FrontWebsiteSettingsView, props: { initialTab: 'business' }, meta: { permission: 'system.settings' } },
         ],
     },
     {
@@ -245,12 +256,15 @@ router.beforeEach((to, from, next) => {
     }
 
     // 3. Permission checks for authenticated users
-    const requiredPermission = to.meta.permission;
+    const requiredPermission = to.meta?.permission;
     if (requiresAuth && authStore.isAuthenticated && requiredPermission) {
         if (authStore.isSuperAdmin || authStore.hasPermission(requiredPermission)) {
             return next();
         } else {
             console.warn(`Access denied to ${to.path}. Required permission: ${requiredPermission}`);
+            if (to.path === '/admin/dashboard' || to.path === '/admin') {
+                return next();
+            }
             return next('/admin/dashboard');
         }
     }

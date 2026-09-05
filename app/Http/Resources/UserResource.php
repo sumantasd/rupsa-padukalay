@@ -21,6 +21,7 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'is_active' => (bool) $this->is_active,
+            'is_protected' => (bool) $this->is_protected,
             'roles' => RoleResource::collection($this->whenLoaded('roles')),
             'stores' => StoreResource::collection($this->whenLoaded('stores')),
             'created_at' => $this->created_at?->toIso8601String(),

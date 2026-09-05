@@ -108,7 +108,7 @@
               class="h-4 w-4 rounded-full border border-slate-300 shadow-2xs"
               :style="{ backgroundColor: variant.color?.hex_code || '#000' }"
             ></span>
-            <span>{{ variant.color?.name }} ({{ variant.color?.code }})</span>
+            <span>{{ variant.color?.name || variant.color_name || 'Standard Color' }} ({{ variant.color?.code || variant.color_code || 'DEF' }})</span>
           </div>
 
           <div class="overflow-x-auto bg-white rounded-xl border border-slate-200">
@@ -120,16 +120,21 @@
                   <th class="px-4 py-2.5">Barcode</th>
                   <th class="px-4 py-2.5">MRP (₹)</th>
                   <th class="px-4 py-2.5">Selling Price (₹)</th>
+                  <th class="px-4 py-2.5">Available Stock</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 font-medium text-slate-800">
                 <tr v-for="s in variant.sizes" :key="s.id">
-                  <td class="px-4 py-2 font-black text-slate-900">IND {{ s.size?.size_number }}</td>
-
+                  <td class="px-4 py-2 font-black text-slate-900">
+                    IND {{ s.size_number || s.size?.size_number || s.size_id }}
+                  </td>
                   <td class="px-4 py-2 font-mono text-[10px] font-bold text-red-600">{{ s.sku }}</td>
                   <td class="px-4 py-2 font-mono text-[10px] text-slate-500">{{ s.barcode || 'N/A' }}</td>
                   <td class="px-4 py-2 font-bold text-slate-400 line-through">₹{{ s.mrp }}</td>
                   <td class="px-4 py-2 font-black text-slate-900">₹{{ s.selling_price }}</td>
+                  <td class="px-4 py-2 font-black text-emerald-700">
+                    {{ s.stock_quantity ?? 0 }} prs
+                  </td>
                 </tr>
               </tbody>
             </table>

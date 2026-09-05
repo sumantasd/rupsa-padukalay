@@ -20,6 +20,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'is_active',
+        'is_protected',
     ];
 
     protected $hidden = [
@@ -33,7 +34,13 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'is_protected' => 'boolean',
         ];
+    }
+
+    public function scopeNotProtected($query)
+    {
+        return $query->where('is_protected', false);
     }
 
     public function stores(): BelongsToMany

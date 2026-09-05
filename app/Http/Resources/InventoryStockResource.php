@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Services\LowStockService;
+use App\Services\ImageUrlService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,6 +15,9 @@ class InventoryStockResource extends JsonResource
         $variant = $variantSize?->variant;
         $product = $variant?->product;
         $supplier = $product?->supplier ?? \App\Models\Supplier::first();
+
+        $primaryImage = $product?->images ? ($product->images->where('is_primary', true)->first() ?? $product->images->first()) : null;
+        $imageUrl = ImageUrlService::format($primaryImage?->image_path);
 
         $lowStockService = app(LowStockService::class);
         $threshold = $variantSize ? $lowStockService->getEffectiveThreshold($variantSize) : (int) ($this->reorder_level ?? 5);
@@ -50,7 +54,8 @@ class InventoryStockResource extends JsonResource
             'barcode' => $variantSize?->barcode,
             'article_number' => $product?->article_number ?? 'N/A',
             'product_name' => $product?->name ?? 'Footwear Product',
-            'primary_image_url' => $product?->primary_image_url ?? $product?->image_url ?? null,
+            'primary_image_url' => $imageUrl,
+            'product_image' => $imageUrl,
             'brand_id' => $product?->brand_id,
             'brand_name' => $product?->brand?->name ?? 'Generic Brand',
             'category_id' => $product?->category_id,

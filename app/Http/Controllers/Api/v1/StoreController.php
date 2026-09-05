@@ -7,7 +7,9 @@ use App\Http\Requests\Master\AssignStoreUsersRequest;
 use App\Http\Requests\Master\StoreStoreRequest;
 use App\Http\Requests\Master\UpdateStoreRequest;
 use App\Http\Resources\StoreResource;
+use App\Models\CmsSetting;
 use App\Models\Store;
+use App\Services\StorePerformanceService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,6 +17,55 @@ use Illuminate\Http\Request;
 class StoreController extends Controller
 {
     use ApiResponse;
+
+    public function performanceOverview(Request $request, StorePerformanceService $service): JsonResponse
+    {
+        $user = $request->user();
+        $storeId = (int) ($request->input('store_id') ?? 1);
+
+        // Access Control for non-Super Admin
+        if (! $user->roles()->where('name', 'Super Admin')->exists()) {
+            $assignedStoreIds = $user->stores()->pluck('stores.id')->toArray();
+            if (count($assignedStoreIds) === 0) {
+                return $this->errorResponse('Forbidden: You have no store assignments.', 403);
+            }
+            if (! in_array($storeId, $assignedStoreIds)) {
+                $storeId = $assignedStoreIds[0];
+            }
+        }
+
+        $store = Store::find($storeId) ?? Store::first();
+
+        if (! $store) {
+            return $this->errorResponse('No active store found.', 404);
+        }
+
+        $data = $service->getPerformance($store, $request->all(), $user);
+
+        return $this->successResponse($data, 'Store performance overview retrieved successfully.');
+    }
+
+    public function performance(Request $request, int $id, StorePerformanceService $service): JsonResponse
+    {
+        $user = $request->user();
+        $store = Store::find($id);
+
+        if (! $store) {
+            return $this->errorResponse('Store not found.', 404);
+        }
+
+        // Store Access Check for non-Super Admin
+        if (! $user->roles()->where('name', 'Super Admin')->exists()) {
+            $hasAccess = $user->stores()->where('stores.id', $store->id)->exists();
+            if (! $hasAccess) {
+                return $this->errorResponse("Forbidden: You are not authorized to access Store ID {$store->id}.", 403);
+            }
+        }
+
+        $data = $service->getPerformance($store, $request->all(), $user);
+
+        return $this->successResponse($data, 'Store performance details retrieved successfully.');
+    }
 
     public function index(Request $request): JsonResponse
     {
@@ -36,7 +87,12 @@ class StoreController extends Controller
             });
         }
 
-        if ($request->boolean('active_only', false)) {
+        if ($request->has('is_active') && $request->input('is_active') !== '') {
+            $query->where('is_active', filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN));
+        } elseif ($request->boolean('include_inactive', false)) {
+            // Include inactive stores if explicitly requested
+        } else {
+            // Default: only active stores are available for user access & assignment
             $query->where('is_active', true);
         }
 
@@ -50,6 +106,9 @@ class StoreController extends Controller
 
     public function store(StoreStoreRequest $request): JsonResponse
     {
+        if (CmsSetting::getSetting('allow_new_store_creation', '0') !== '1') {
+            return $this->errorResponse('New store creation is currently disabled in system module settings.', 403);
+        }
         $store = Store::create([
             'code' => strtoupper(trim($request->input('code'))),
             'name' => trim($request->input('name')),

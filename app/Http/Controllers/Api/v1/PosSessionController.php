@@ -30,7 +30,10 @@ class PosSessionController extends Controller
 
         // Store Access Control for non-Super Admin
         if (! $user->roles()->where('name', 'Super Admin')->exists()) {
-            $userStoreIds = $user->stores()->pluck('stores.id');
+            $userStoreIds = $user->stores()->pluck('stores.id')->map(fn ($id) => (int) $id);
+            if ($userStoreIds->isEmpty()) {
+                $userStoreIds = $user->stores()->pluck('id')->map(fn ($id) => (int) $id);
+            }
             if (! $userStoreIds->contains($storeId)) {
                 return $this->errorResponse('Forbidden: You are not authorized to open a POS session for this store.', 403);
             }

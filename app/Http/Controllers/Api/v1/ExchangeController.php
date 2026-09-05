@@ -464,4 +464,27 @@ class ExchangeController extends Controller
             return $this->errorResponse('Failed to process exchange: '.$e->getMessage(), 500);
         }
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $exchange = ReturnSale::find($id);
+
+        if (! $exchange) {
+            return $this->errorResponse('Exchange record not found.', 404);
+        }
+
+        try {
+            DB::transaction(function () use ($exchange) {
+                ReturnItem::where('return_id', $exchange->id)->delete();
+                StockMovement::where('reference_type', ReturnSale::class)
+                    ->where('reference_id', $exchange->id)
+                    ->delete();
+                $exchange->delete();
+            });
+
+            return $this->successResponse(null, 'Exchange record deleted successfully.');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete exchange record: '.$e->getMessage(), 500);
+        }
+    }
 }

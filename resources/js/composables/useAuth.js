@@ -20,5 +20,6 @@ export function useAuth() {
         login: authStore.login,
         logout: authStore.logout,
         fetchMe: authStore.fetchMe,
+        setUser: authStore.setUser,
     };
 }

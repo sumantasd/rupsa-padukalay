@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { watch } from 'vue';
+import { watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import Sidebar from '../components/layout/Sidebar.vue';
 import Navbar from '../components/layout/Navbar.vue';
@@ -60,9 +60,18 @@ import MobileBottomNav from '../components/layout/MobileBottomNav.vue';
 import MoreMenuDrawer from '../components/layout/MoreMenuDrawer.vue';
 import ToastContainer from '../components/ui/ToastContainer.vue';
 import { useUiStore } from '../stores/uiStore';
+import { useCompanyStore } from '../stores/companyStore';
 
 const uiStore = useUiStore();
+const companyStore = useCompanyStore();
 const route = useRoute();
+
+onMounted(() => {
+  uiStore.initTheme();
+  if (!companyStore.initialized) {
+    companyStore.fetchCompanyProfile();
+  }
+});
 
 // Automatically close all drawers whenever route changes on mobile
 watch(() => route.path, () => {

@@ -15,6 +15,13 @@ class ProductVariantSizeResource extends JsonResource
             'size_id' => $this->size_id,
             'size_number' => $this->size?->size_number,
             'size_system' => $this->size?->size_system,
+            'size' => $this->whenLoaded('size', function () {
+                return [
+                    'id' => $this->size->id,
+                    'size_number' => $this->size->size_number,
+                    'size_system' => $this->size->size_system,
+                ];
+            }),
             'sku' => $this->sku,
             'barcode' => $this->barcode,
             'cost_price' => (float) $this->cost_price,

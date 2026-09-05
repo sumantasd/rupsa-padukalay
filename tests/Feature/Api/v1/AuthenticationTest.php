@@ -135,4 +135,59 @@ class AuthenticationTest extends TestCase
 
         $response->assertStatus(401);
     }
+
+    public function test_authenticated_user_can_update_profile(): void
+    {
+        $user = User::create([
+            'name' => 'Original Name',
+            'username' => 'user_profile',
+            'email' => 'old_email@example.com',
+            'password' => Hash::make('secret123'),
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->putJson('/api/v1/auth/profile', [
+            'name' => 'Updated Name',
+            'email' => 'new_email@example.com',
+            'phone' => '+91 9999988888',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'Updated Name')
+            ->assertJsonPath('data.email', 'new_email@example.com');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'name' => 'Updated Name',
+            'email' => 'new_email@example.com',
+        ]);
+    }
+
+    public function test_authenticated_user_can_change_password(): void
+    {
+        $user = User::create([
+            'name' => 'Password User',
+            'username' => 'user_pass',
+            'email' => 'pass_email@example.com',
+            'password' => Hash::make('old_password_123'),
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->putJson('/api/v1/auth/change-password', [
+            'current_password' => 'old_password_123',
+            'new_password' => 'new_secure_pass_2026',
+            'new_password_confirmation' => 'new_secure_pass_2026',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $user->refresh();
+        $this->assertTrue(Hash::check('new_secure_pass_2026', $user->password));
+    }
 }
