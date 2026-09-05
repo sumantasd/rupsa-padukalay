@@ -563,7 +563,9 @@ import api from '../../services/api';
 import { usePrinterStore } from '../../stores/printerStore';
 import ThermalReceipt from '../../components/printing/ThermalReceipt.vue';
 import MobileListCard from '../../components/ui/MobileListCard.vue';
+import { useAuth } from '../../composables/useAuth';
 
+const { hasPermission } = useAuth();
 const printerStore = usePrinterStore();
 const returnsList = ref([]);
 const loading = ref(false);
