@@ -8,8 +8,8 @@
       @filter-change="handleFilterChange"
     />
 
-    <!-- 2. Top Row: 6 KPI Cards (Fluid grid) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4">
+    <!-- 2. Top Row: 5 KPI Cards (Fluid grid) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
       <!-- Card 1: Net Revenue -->
       <KpiCard
         title="Net Sales Revenue"
@@ -34,20 +34,7 @@
         :sparkline-points="salesOrderTrendPoints"
       />
 
-      <!-- Card 3: Gross Profit -->
-      <KpiCard
-        title="Gross Profit"
-        :value="'₹' + formatAmount(kpis.gross_profit ?? 0)"
-        icon="💹"
-        icon-bg-class="bg-emerald-50 text-emerald-600 border border-emerald-100"
-        :supporting-text="(kpis.gross_margin_percentage ?? 0) + '% Margin'"
-        :trend-text="formatGrowthText(kpis.period_comparison?.gross_profit_growth_pct)"
-        :trend-color-class="getGrowthColorClass(kpis.period_comparison?.gross_profit_growth_pct)"
-        sparkline-color="#16a34a"
-        :sparkline-points="profitTrendPoints"
-      />
-
-      <!-- Card 4: Active Customers -->
+      <!-- Card 3: Active Customers -->
       <KpiCard
         title="Active Customers"
         :value="customerKpi.active_purchasing_customers ?? kpis.active_customers_count ?? 0"
@@ -60,7 +47,7 @@
         :sparkline-points="customerTrendPoints"
       />
 
-      <!-- Card 5: Inventory Valuation -->
+      <!-- Card 4: Inventory Valuation -->
       <KpiCard
         title="Inventory Valuation"
         :value="'₹' + formatAmount(inventoryKpi.inventory_valuation_cost ?? 0)"
@@ -73,7 +60,7 @@
         :sparkline-points="inventoryTrendPoints"
       />
 
-      <!-- Card 6: Low Stock Items -->
+      <!-- Card 5: Low Stock Items -->
       <KpiCard
         title="Low Stock Items"
         :value="inventoryKpi.low_stock_count ?? 0"

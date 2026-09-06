@@ -27,7 +27,16 @@ class ProductVariantSizeResource extends JsonResource
             'cost_price' => (float) $this->cost_price,
             'mrp' => (float) $this->mrp,
             'selling_price' => (float) $this->selling_price,
-            'stock_quantity' => (int) ($this->relationLoaded('inventoryStocks') ? ($this->inventoryStocks->where('store_id', (int) request('store_id', 1))->sum('stock_quantity')) : 0),
+            'stock_quantity' => (int) ($this->relationLoaded('inventoryStocks')
+                ? ($request->has('store_id') && $request->input('store_id') !== ''
+                    ? $this->inventoryStocks->where('store_id', (int) $request->input('store_id'))->sum('stock_quantity')
+                    : $this->inventoryStocks->sum('stock_quantity'))
+                : 0),
+            'current_stock' => (int) ($this->relationLoaded('inventoryStocks')
+                ? ($request->has('store_id') && $request->input('store_id') !== ''
+                    ? $this->inventoryStocks->where('store_id', (int) $request->input('store_id'))->sum('stock_quantity')
+                    : $this->inventoryStocks->sum('stock_quantity'))
+                : 0),
             'is_active' => (bool) $this->is_active,
         ];
     }

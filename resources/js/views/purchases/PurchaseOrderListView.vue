@@ -67,14 +67,16 @@
 
         <template #actions>
           <button
-            @click="openPoDetailModal(po.id)"
-            class="px-3 py-1.5 bg-slate-900 text-white rounded-lg font-bold text-xs cursor-pointer flex items-center gap-1"
+            @click.stop.prevent="viewPoDetails(po)"
+            type="button"
+            class="px-3 py-1.5 bg-slate-900 text-white rounded-lg font-bold text-xs cursor-pointer flex items-center gap-1 touch-manipulation active:scale-95 transition-all"
           >
             <span>🔍 View</span>
           </button>
           <button
-            @click="printPoDocument(po.id)"
-            class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg font-bold text-xs cursor-pointer flex items-center gap-1"
+            @click.stop.prevent="triggerPrintPo(po)"
+            type="button"
+            class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg font-bold text-xs cursor-pointer flex items-center gap-1 touch-manipulation active:scale-95 transition-all"
           >
             <span>🖨️ Print</span>
           </button>
@@ -1016,6 +1018,14 @@ function navigateToReceiveGoods() {
 
 function printPo() {
   window.print();
+}
+
+async function triggerPrintPo(po) {
+  if (!po || !po.id) return;
+  await viewPoDetails(po);
+  setTimeout(() => {
+    window.print();
+  }, 300);
 }
 
 async function loadMasterData() {

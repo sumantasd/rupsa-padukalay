@@ -390,7 +390,7 @@ class ExpenseManagementTest extends TestCase
         $res = $this->deleteJson("/api/v1/expenses/{$expense->id}");
 
         $res->assertStatus(200)->assertJson(['success' => true]);
-        $this->assertDatabaseMissing('expenses', ['id' => $expense->id]);
+        $this->assertSoftDeleted('expenses', ['id' => $expense->id]);
     }
 
     public function test_15_super_admin_cross_store_access(): void

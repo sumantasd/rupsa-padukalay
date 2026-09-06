@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\v1\ColorController;
 use App\Http\Controllers\Api\v1\CompanyProfileController;
 use App\Http\Controllers\Api\v1\CustomerController;
 use App\Http\Controllers\Api\v1\CustomerAnalyticsController;
+use App\Http\Controllers\Api\v1\DatabaseManagementController;
 use App\Http\Controllers\Api\v1\HsnCodeController;
 use App\Http\Controllers\Api\v1\InventoryStockController;
 use App\Http\Controllers\Api\v1\InventorySettingController;
@@ -47,6 +48,7 @@ use App\Http\Controllers\Api\v1\SupplierAnalyticsController;
 use App\Http\Controllers\Api\v1\TaxRateController;
 use App\Http\Controllers\Api\v1\TaxSettingController;
 use App\Http\Controllers\Api\v1\PaymentCollectionController;
+use App\Http\Controllers\Api\v1\RecycleBinController;
 use App\Http\Controllers\Api\v1\RefundController;
 use App\Http\Controllers\Api\v1\CashDrawerController;
 use App\Http\Controllers\Api\v1\DayClosingController;
@@ -217,7 +219,11 @@ Route::prefix('v1')->group(function () {
 
         // Expense Management API
         Route::middleware('permission:products.view|expenses.view')->get('expenses', [ExpenseController::class, 'index']);
+        Route::middleware('permission:products.view|expenses.view')->get('expenses/reports', [ExpenseController::class, 'reports']);
         Route::middleware('permission:products.view|expenses.view')->get('expense-categories', [ExpenseController::class, 'categories']);
+        Route::middleware('permission:products.create|expenses.create')->post('expense-categories', [ExpenseController::class, 'storeCategory']);
+        Route::middleware('permission:products.edit|expenses.create')->put('expense-categories/{id}', [ExpenseController::class, 'updateCategory']);
+        Route::middleware('permission:products.edit|expenses.create')->delete('expense-categories/{id}', [ExpenseController::class, 'destroyCategory']);
         Route::middleware('permission:products.view|expenses.view')->get('expenses/{id}', [ExpenseController::class, 'show']);
         Route::middleware('permission:products.create|expenses.create')->post('expenses', [ExpenseController::class, 'store']);
         Route::middleware('permission:products.edit|expenses.create')->put('expenses/{id}', [ExpenseController::class, 'update']);
@@ -275,6 +281,17 @@ Route::prefix('v1')->group(function () {
         Route::middleware('permission:products.view|reports.view')->get('reports/date-wise-payments', [ReportController::class, 'dateWisePayments']);
         Route::middleware('permission:products.view|reports.view')->get('reports/date-wise-profit-loss', [ReportController::class, 'dateWiseProfitLoss']);
         Route::middleware('permission:products.view|reports.view')->get('reports/pdf', [ReportPdfController::class, 'export']);
+
+        // Database Management & Backup / Reset API
+        Route::middleware('permission:database.manage|system.settings')->group(function () {
+            Route::get('database/backups', [DatabaseManagementController::class, 'listBackups']);
+            Route::post('database/backups', [DatabaseManagementController::class, 'createBackup']);
+            Route::get('database/backups/{id}/download', [DatabaseManagementController::class, 'downloadBackup']);
+            Route::delete('database/backups/{id}', [DatabaseManagementController::class, 'deleteBackup']);
+            Route::get('database/reset/categories', [DatabaseManagementController::class, 'getResetCategories']);
+            Route::post('database/reset', [DatabaseManagementController::class, 'executeReset']);
+            Route::get('database/reset/audits', [DatabaseManagementController::class, 'getResetAudits']);
+        });
 
         // Users & Access Control API
         Route::middleware('permission:users.view|users.manage')->get('users', [UserController::class, 'index']);
@@ -481,5 +498,12 @@ Route::prefix('v1')->group(function () {
         // General Settings API
         Route::middleware('permission:system.settings|general.settings')->get('settings/general', [GeneralSettingController::class, 'getSettings']);
         Route::middleware('permission:system.settings|general.settings')->post('settings/general', [GeneralSettingController::class, 'updateSettings']);
+
+        // Recycle Bin API
+        Route::middleware('permission:recycle_bin.manage|system.settings')->group(function () {
+            Route::get('recycle-bin', [RecycleBinController::class, 'index']);
+            Route::post('recycle-bin/{type}/{id}/restore', [RecycleBinController::class, 'restore']);
+            Route::delete('recycle-bin/{type}/{id}/force-delete', [RecycleBinController::class, 'forceDelete']);
+        });
     });
 });

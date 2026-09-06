@@ -4,7 +4,7 @@
     "name": "_plugin-vue_export-helper"
   },
   "resources/css/app.css": {
-    "file": "assets/app-OZ3NVo8w.css",
+    "file": "assets/app-BDDsgtQm.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -13,7 +13,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-D7Xi2HAb.js",
+    "file": "assets/app--2PUfKNc.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -21,8 +21,8 @@
       "__plugin-vue_export-helper-CKkCtEez.js"
     ],
     "css": [
-      "assets/app-D6c6WQD0.css",
-      "assets/app-OZ3NVo8w.css"
+      "assets/app-CTEcgTBk.css",
+      "assets/app-BDDsgtQm.css"
     ]
   },
   "resources/js/publicApp.js": {

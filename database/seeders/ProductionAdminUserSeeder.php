@@ -58,6 +58,8 @@ class ProductionAdminUserSeeder extends Seeder
             ['name' => 'reports.view', 'module_group' => 'Reports', 'display_name' => 'Executive & Financial Analytics'],
             ['name' => 'audit.view', 'module_group' => 'Audit', 'display_name' => 'View Audit Logs'],
             ['name' => 'system.settings', 'module_group' => 'System', 'display_name' => 'System Settings'],
+            ['name' => 'database.manage', 'module_group' => 'System', 'display_name' => 'Database Backup & Reset Management'],
+            ['name' => 'recycle_bin.manage', 'module_group' => 'System', 'display_name' => 'Recycle Bin & Data Recovery Management'],
         ];
 
         $permissionIds = [];

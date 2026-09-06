@@ -343,35 +343,46 @@ class ProductController extends Controller
         $hasPurchaseOrderItems = ! empty($sizeIds) && \App\Models\PurchaseOrderItem::whereIn('product_variant_size_id', $sizeIds)->exists();
         $hasPurchaseReturnItems = ! empty($sizeIds) && \App\Models\PurchaseReturnItem::whereIn('product_variant_size_id', $sizeIds)->exists();
         $hasStockMovements = ! empty($sizeIds) && \App\Models\StockMovement::whereIn('product_variant_size_id', $sizeIds)->exists();
-        $hasActiveStock = ! empty($sizeIds) && \App\Models\InventoryStock::whereIn('product_variant_size_id', $sizeIds)->where('stock_quantity', '>', 0)->exists();
 
-        if ($hasInvoiceItems || $hasReturnItems || $hasPurchaseOrderItems || $hasPurchaseReturnItems || $hasStockMovements || $hasActiveStock) {
-            return $this->errorResponse(
-                'This product cannot be deleted because transaction/history records exist. You can deactivate this product instead.',
-                422,
+        $hasTransactions = $hasInvoiceItems || $hasReturnItems || $hasPurchaseOrderItems || $hasPurchaseReturnItems || $hasStockMovements;
+
+        // Perform soft delete (archive)
+        $product->is_active = false;
+        $product->save();
+        $product->delete();
+
+        // Audit Logging
+        try {
+            app(\App\Services\AuditService::class)->logEvent([
+                'module' => 'products',
+                'event_type' => 'product_archive',
+                'auditable_type' => Product::class,
+                'auditable_id' => $product->id,
+                'reason_notes' => "Archived product {$product->name} (SKU/Article: {$product->article_number}). Has transactions: " . ($hasTransactions ? 'Yes' : 'No'),
+            ]);
+        } catch (\Throwable $e) {
+            // Log silent fail fallback
+        }
+
+        if ($hasTransactions) {
+            return $this->successResponse(
                 [
-                    'reason' => 'Transactional records exist for this product.',
-                    'can_deactivate' => true,
-                ]
+                    'id' => $product->id,
+                    'archived' => true,
+                    'has_transactions' => true,
+                ],
+                'This product has transaction history, so it will be archived instead of permanently deleted.'
             );
         }
 
-        // Perform safe atomic database transaction
-        DB::transaction(function () use ($product, $variantIds, $sizeIds) {
-            if (! empty($sizeIds)) {
-                \App\Models\InventoryStock::whereIn('product_variant_size_id', $sizeIds)->delete();
-                ProductVariantSize::whereIn('id', $sizeIds)->delete();
-            }
-
-            if ($variantIds->isNotEmpty()) {
-                ProductVariant::whereIn('id', $variantIds)->delete();
-            }
-
-            ProductImage::where('product_id', $product->id)->delete();
-            $product->forceDelete();
-        });
-
-        return $this->successResponse(null, 'Product deleted successfully.');
+        return $this->successResponse(
+            [
+                'id' => $product->id,
+                'archived' => true,
+                'has_transactions' => false,
+            ],
+            'Product deleted successfully.'
+        );
     }
 
     public function bulkStore(Request $request): JsonResponse
@@ -382,7 +393,7 @@ class ProductController extends Controller
             'brand_id' => ['required', 'integer', 'exists:brands,id'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'hsn_code_id' => ['nullable', 'integer', 'exists:hsn_codes,id'],
-            'gender' => ['nullable', 'string', 'in:men,women,kids,unisex'],
+            'gender' => ['nullable', 'string', 'in:men,women,boys,girls,unisex'],
             'upper_material' => ['nullable', 'string', 'max:255'],
             'sole_material' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -576,7 +587,7 @@ class ProductController extends Controller
             'brand_id' => ['required', 'integer', 'exists:brands,id'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'hsn_code_id' => ['nullable', 'integer', 'exists:hsn_codes,id'],
-            'gender' => ['nullable', 'string', 'in:men,women,kids,unisex'],
+            'gender' => ['nullable', 'string', 'in:men,women,boys,girls,unisex'],
             'upper_material' => ['nullable', 'string', 'max:255'],
             'sole_material' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -689,7 +700,16 @@ class ProductController extends Controller
                                 'selling_price' => (float) ($row['selling_price'] ?? $request->input('selling_price', 0.00)),
                                 'is_active' => true,
                             ]);
+
+                            $opStock = (int) ($row['opening_stock'] ?? 0);
+                            if ($opStock > 0) {
+                                $stockAdjustmentsToApply[] = [
+                                    'variant_size' => $variantSize,
+                                    'quantity' => $opStock,
+                                ];
+                            }
                         } else {
+                            // Existing SKU: Update metadata ONLY. NEVER alter existing stock!
                             $variantSize->sku = $sku;
                             if (isset($row['mrp'])) $variantSize->mrp = (float) $row['mrp'];
                             if (isset($row['selling_price'])) $variantSize->selling_price = (float) $row['selling_price'];
@@ -698,75 +718,44 @@ class ProductController extends Controller
                             if (array_key_exists('reorder_quantity', $row)) $variantSize->reorder_quantity = $row['reorder_quantity'] !== null ? (int) $row['reorder_quantity'] : null;
                             $variantSize->save();
                         }
-
-                        if (isset($row['opening_stock']) && is_numeric($row['opening_stock'])) {
-                            $newStockQty = (int) $row['opening_stock'];
-                            $currentStockObj = $this->inventoryService->getStockRecord($variantSize->id, 1, 0, 0);
-                            $currentQty = $currentStockObj->stock_quantity;
-                            $diff = $newStockQty - $currentQty;
-
-                            if ($diff != 0) {
-                                $stockAdjustmentsToApply[] = [
-                                    'variant_size' => $variantSize,
-                                    'diff' => $diff,
-                                    'old_qty' => $currentQty,
-                                    'new_qty' => $newStockQty,
-                                ];
-                            }
-                        }
                     }
                 }
 
+                // Initial opening stock for NEW SKUs created during edit only
                 if (! empty($stockAdjustmentsToApply)) {
                     $adjNumber = 'ADJ-' . date('Ymd') . '-' . strtoupper(Str::random(6));
                     $adjRecord = StockAdjustment::create([
                         'adjustment_number' => $adjNumber,
                         'store_id' => 1,
                         'warehouse_id' => null,
-                        'reason' => 'physical_count',
-                        'notes' => "Stock adjustment during product edit for article {$article}",
+                        'reason' => 'opening_stock',
+                        'notes' => "Initial opening stock for new SKU created during edit of article {$article}",
                         'created_by' => $user?->id ?? 1,
                     ]);
 
                     foreach ($stockAdjustmentsToApply as $item) {
                         $vSize = $item['variant_size'];
-                        $diff = $item['diff'];
+                        $qty = $item['quantity'];
 
-                        if ($diff > 0) {
-                            $this->inventoryService->addStock(
-                                $vSize->id,
-                                $diff,
-                                StockMovementType::ADJUSTMENT_ADD,
-                                StockAdjustment::class,
-                                $adjRecord->id,
-                                1,
-                                0,
-                                0,
-                                $user,
-                                "Stock updated during product edit"
-                            );
-                        } else {
-                            $this->inventoryService->deductStock(
-                                $vSize->id,
-                                abs($diff),
-                                StockMovementType::ADJUSTMENT_DEDUCT,
-                                StockAdjustment::class,
-                                $adjRecord->id,
-                                1,
-                                0,
-                                0,
-                                $user,
-                                true,
-                                "Stock updated during product edit"
-                            );
-                        }
+                        $this->inventoryService->addStock(
+                            $vSize->id,
+                            $qty,
+                            StockMovementType::ADJUSTMENT_ADD,
+                            StockAdjustment::class,
+                            $adjRecord->id,
+                            1,
+                            0,
+                            0,
+                            $user,
+                            "Initial opening stock entry for new SKU"
+                        );
 
                         StockAdjustmentItem::create([
                             'stock_adjustment_id' => $adjRecord->id,
                             'product_variant_size_id' => $vSize->id,
-                            'old_quantity' => $item['old_qty'],
-                            'new_quantity' => $item['new_qty'],
-                            'quantity_adjusted' => $diff,
+                            'old_quantity' => 0,
+                            'new_quantity' => $qty,
+                            'quantity_adjusted' => $qty,
                         ]);
                     }
                 }

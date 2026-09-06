@@ -242,7 +242,7 @@ class ReportService
 
             $qty = (int) $stock->stock_quantity;
             $sellingPrice = (float) ($vs->selling_price ?? 0.00);
-            $costPrice = (float) ($vs->cost_price ?? ($sellingPrice > 0 ? round($sellingPrice * 0.6, 2) : 0.00));
+            $costPrice = (float) ($vs->cost_price ?? 0.00);
             $mrp = (float) ($vs->mrp ?? 0.00);
 
             $costVal = round($qty * $costPrice, 2);

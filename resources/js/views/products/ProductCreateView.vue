@@ -108,7 +108,8 @@
             >
               <option value="men">Men</option>
               <option value="women">Women</option>
-              <option value="kids">Kids</option>
+              <option value="boys">Boys</option>
+              <option value="girls">Girls</option>
               <option value="unisex">Unisex</option>
             </select>
           </div>
@@ -248,7 +249,7 @@
               type="number"
               step="0.01"
               min="0"
-              placeholder="650.00"
+              placeholder="e.g. 500.00"
               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white"
             />
           </div>
@@ -474,12 +475,12 @@ const form = reactive({
   brand_id: '',
   category_id: '',
   gender: 'men',
-  upper_material: 'Genuine Leather',
-  sole_material: 'TPR Rubber',
+  upper_material: '',
+  sole_material: '',
   description: '',
-  mrp: 1299,
-  selling_price: 999,
-  cost_price: 650,
+  mrp: null,
+  selling_price: null,
+  cost_price: null,
   hsn_code_id: '',
   size_chart_id: null,
   store_id: '',

@@ -99,8 +99,8 @@ class ProductDeleteTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'Product deleted successfully.');
 
-        $this->assertDatabaseMissing('products', ['id' => $product->id]);
-        $this->assertDatabaseMissing('product_variant_sizes', ['id' => $variantSize->id]);
+        $this->assertSoftDeleted('products', ['id' => $product->id]);
+        $this->assertSoftDeleted('product_variant_sizes', ['id' => $variantSize->id]);
     }
 
     public function test_product_with_invoice_items_cannot_be_deleted()
@@ -155,11 +155,11 @@ class ProductDeleteTest extends TestCase
         $response = $this->actingAs($this->adminUser, 'sanctum')
             ->deleteJson("/api/v1/products/{$product->id}");
 
-        $response->assertStatus(422)
-            ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'This product cannot be deleted because transaction/history records exist. You can deactivate this product instead.');
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'This product has transaction history, so it will be archived instead of permanently deleted.');
 
-        $this->assertDatabaseHas('products', ['id' => $product->id]);
+        $this->assertSoftDeleted('products', ['id' => $product->id]);
     }
 
     public function test_product_with_purchase_items_cannot_be_deleted()
@@ -214,10 +214,11 @@ class ProductDeleteTest extends TestCase
         $response = $this->actingAs($this->adminUser, 'sanctum')
             ->deleteJson("/api/v1/products/{$product->id}");
 
-        $response->assertStatus(422)
-            ->assertJsonPath('success', false);
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'This product has transaction history, so it will be archived instead of permanently deleted.');
 
-        $this->assertDatabaseHas('products', ['id' => $product->id]);
+        $this->assertSoftDeleted('products', ['id' => $product->id]);
     }
 
     public function test_product_with_stock_movements_cannot_be_deleted()
@@ -256,10 +257,11 @@ class ProductDeleteTest extends TestCase
         $response = $this->actingAs($this->adminUser, 'sanctum')
             ->deleteJson("/api/v1/products/{$product->id}");
 
-        $response->assertStatus(422)
-            ->assertJsonPath('success', false);
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'This product has transaction history, so it will be archived instead of permanently deleted.');
 
-        $this->assertDatabaseHas('products', ['id' => $product->id]);
+        $this->assertSoftDeleted('products', ['id' => $product->id]);
     }
 
     public function test_non_existent_product_returns_404()

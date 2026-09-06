@@ -162,10 +162,11 @@ const allMenuGroups = [
     ]
   },
   {
-    title: 'PAYMENTS',
+    title: 'PAYMENTS & EXPENSES',
     items: [
       { name: 'Payment Collections', path: '/admin/payments/collections', icon: '💳', permission: 'pos.billing' },
       { name: 'Refunds', path: '/admin/payments/refunds', icon: '💸', permission: 'pos.returns' },
+      { name: 'Expenses', path: '/admin/expenses', icon: '💸', permission: 'expenses.view' },
       { name: 'Cash Drawer', path: '/admin/payments/cash-drawer', icon: '💵', permission: 'pos.sessions' },
       { name: 'Day Closing', path: '/admin/payments/day-closing', icon: '🔒', permission: 'pos.sessions' },
     ]
@@ -210,6 +211,8 @@ const allMenuGroups = [
       { name: 'Number Series', path: '/admin/settings/number-series', icon: '🔢', permission: 'system.settings|number_series.manage' },
       { name: 'General Settings', path: '/admin/settings/general', icon: '🔧', permission: 'system.settings|general.settings' },
       { name: 'Module Settings', path: '/admin/settings/modules', icon: '🧩', permission: 'system.settings|module.settings' },
+      { name: 'Database Management', path: '/admin/settings/database', icon: '🗄️', permission: 'database.manage|system.settings' },
+      { name: 'Recycle Bin', path: '/admin/settings/recycle-bin', icon: '🗑️', permission: 'recycle_bin.manage|system.settings' },
     ]
   },
   {

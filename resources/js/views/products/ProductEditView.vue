@@ -115,7 +115,8 @@
             >
               <option value="men">Men</option>
               <option value="women">Women</option>
-              <option value="kids">Kids</option>
+              <option value="boys">Boys</option>
+              <option value="girls">Girls</option>
               <option value="unisex">Unisex</option>
             </select>
           </div>
@@ -277,7 +278,7 @@
               type="number"
               step="0.01"
               min="0"
-              placeholder="650.00"
+              placeholder="e.g. 500.00"
               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white"
             />
           </div>
@@ -431,13 +432,17 @@
                     />
                   </td>
                   <td class="px-4 py-2">
-                    <input
-                      v-model.number="sizeRow.opening_stock"
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      class="w-24 bg-amber-50 border border-amber-300 rounded-lg px-2 py-1 text-xs font-black text-slate-900 focus:bg-white"
-                    />
+                    <span
+                      :class="[
+                        'px-2.5 py-1 rounded-xl border text-xs font-mono font-black inline-flex items-center gap-1 shadow-2xs',
+                        (sizeRow.current_stock ?? sizeRow.opening_stock ?? 0) > 0
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300'
+                          : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400'
+                      ]"
+                    >
+                      <span>📦</span>
+                      <span>{{ sizeRow.current_stock ?? sizeRow.opening_stock ?? 0 }} Units</span>
+                    </span>
                   </td>
                 </tr>
               </tbody>
@@ -508,9 +513,9 @@ const form = reactive({
   upper_material: '',
   sole_material: '',
   description: '',
-  mrp: 1299,
-  selling_price: 999,
-  cost_price: 650,
+  mrp: null,
+  selling_price: null,
+  cost_price: null,
   hsn_code_id: '',
   is_active: true,
   is_visible_on_web: true,
@@ -644,13 +649,15 @@ function syncColorBlocksWithSelectedSizes() {
     const existingMap = new Map(block.size_rows.map(r => [String(r.size_number), r]));
     block.size_rows = selectedObjects.map(sz => {
       const existing = existingMap.get(sz.size_number);
+      const stockVal = existing ? (existing.current_stock ?? existing.opening_stock ?? 0) : 0;
       return {
         size_id: sz.id,
         size_number: sz.size_number,
         mrp: existing ? existing.mrp : form.mrp,
         selling_price: existing ? existing.selling_price : form.selling_price,
         cost_price: existing ? existing.cost_price : form.cost_price,
-        opening_stock: existing ? existing.opening_stock : 0,
+        current_stock: stockVal,
+        opening_stock: stockVal,
         sku: existing ? existing.sku : null,
       };
     });
@@ -751,14 +758,15 @@ async function fetchMasterDataAndProduct() {
         const sizeRows = (variant.sizes || []).map(szItem => {
           const szNum = String(szItem.size?.size_number || szItem.size_number || '');
           if (szNum) existingSizeNumbers.add(szNum);
-          const stockObj = szItem.inventory_stocks?.[0];
+          const currentStk = szItem.stock_quantity ?? szItem.current_stock ?? szItem.inventory_stocks?.[0]?.stock_quantity ?? 0;
           return {
             size_id: szItem.size_id,
             size_number: szNum,
             mrp: szItem.mrp,
             selling_price: szItem.selling_price,
             cost_price: szItem.cost_price,
-            opening_stock: stockObj?.stock_quantity || 0,
+            current_stock: currentStk,
+            opening_stock: currentStk,
             sku: szItem.sku,
           };
         });

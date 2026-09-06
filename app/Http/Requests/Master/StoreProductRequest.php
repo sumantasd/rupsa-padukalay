@@ -40,7 +40,7 @@ class StoreProductRequest extends FormRequest
             ],
             'hsn_code_id' => ['nullable', 'exists:hsn_codes,id'],
             'size_chart_id' => ['nullable', 'exists:size_charts,id'],
-            'gender' => ['nullable', 'string', 'in:men,women,kids,boys,girls,unisex'],
+            'gender' => ['nullable', 'string', 'in:men,women,boys,girls,unisex'],
             'upper_material' => ['nullable', 'string', 'max:100'],
             'sole_material' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string'],

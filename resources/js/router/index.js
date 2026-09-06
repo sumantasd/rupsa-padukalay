@@ -71,6 +71,8 @@ import PaymentMethodsSettingsView from '../views/settings/PaymentMethodsSettings
 import PosSettingsView from '../views/settings/PosSettingsView.vue';
 import NumberSeriesSettingsView from '../views/settings/NumberSeriesSettingsView.vue';
 import GeneralSettingsView from '../views/settings/GeneralSettingsView.vue';
+import DatabaseManagementView from '../views/settings/DatabaseManagementView.vue';
+import RecycleBinView from '../views/settings/RecycleBinView.vue';
 
 import WebsiteDashboardView from '../views/front_website/WebsiteDashboardView.vue';
 import FrontHomePageView from '../views/front_website/FrontHomePageView.vue';
@@ -176,6 +178,7 @@ const routes = [
             { path: 'cash-drawer', redirect: '/admin/payments/cash-drawer' },
             { path: 'payments/day-closing', name: 'day-closing', component: DayClosingView, meta: { permission: 'pos.sessions' } },
             { path: 'day-closing', redirect: '/admin/payments/day-closing' },
+            { path: 'expenses', name: 'expenses-list', component: ExpenseListView, meta: { permission: 'expenses.view' } },
 
             // Reports & Analytics Routes
             { path: 'reports/sales', name: 'reports-sales', component: SalesReportsView, meta: { permission: 'reports.view' } },
@@ -207,6 +210,8 @@ const routes = [
             { path: 'settings/number-series', name: 'settings-number-series', component: NumberSeriesSettingsView, meta: { permission: 'system.settings|number_series.manage' } },
             { path: 'settings/general', name: 'settings-general', component: GeneralSettingsView, meta: { permission: 'system.settings|general.settings' } },
             { path: 'settings/modules', name: 'settings-modules', component: ModuleSettingsView, meta: { permission: 'system.settings|module.settings' } },
+            { path: 'settings/database', name: 'settings-database', component: DatabaseManagementView, meta: { permission: 'database.manage|system.settings' } },
+            { path: 'settings/recycle-bin', name: 'settings-recycle-bin', component: RecycleBinView, meta: { permission: 'recycle_bin.manage|system.settings' } },
             { path: 'settings/front-website', name: 'settings-front-website', component: FrontWebsiteSettingsView, meta: { permission: 'system.settings' } },
 
             // Front Website Central Management Routes
