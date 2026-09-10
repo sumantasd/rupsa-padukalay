@@ -13,7 +13,7 @@
         <div>
           <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Edit Footwear Article</h1>
           <p class="text-xs text-slate-500 font-medium mt-0.5">
-            Update footwear article details, image, color variants, size chart SKUs, prices and stock inventory.
+            Update footwear article details, image, sizes, prices and stock inventory.
           </p>
         </div>
       </div>
@@ -42,8 +42,8 @@
               v-model="form.article_number"
               type="text"
               required
-              placeholder="e.g. RP-MEN-001"
-              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-mono text-xs uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white"
+              placeholder="e.g. BS-001"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-mono text-xs uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white font-bold"
             />
             <p class="text-[10px] text-slate-400">Unique article code across inventory.</p>
           </div>
@@ -56,17 +56,17 @@
               type="text"
               required
               placeholder="e.g. Executive Classic Leather Oxford"
-              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white"
             />
           </div>
 
-          <!-- Category -->
-          <div class="space-y-1">
+          <!-- Category (Configurable via Module Settings) -->
+          <div v-if="moduleStore.productFieldCategory" class="space-y-1">
             <label class="font-bold text-slate-700 block">Category *</label>
             <select
               v-model="form.category_id"
               @change="onCategoryChange"
-              required
+              :required="moduleStore.productFieldCategory"
               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white"
             >
               <option value="">-- Select Category --</option>
@@ -105,12 +105,11 @@
             </select>
           </div>
 
-          <!-- Gender -->
-          <div class="space-y-1">
-            <label class="font-bold text-slate-700 block">Gender Target *</label>
+          <!-- Gender (Configurable via Module Settings) -->
+          <div v-if="moduleStore.productFieldGender" class="space-y-1">
+            <label class="font-bold text-slate-700 block">Gender Target</label>
             <select
               v-model="form.gender"
-              required
               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white"
             >
               <option value="men">Men</option>
@@ -121,8 +120,8 @@
             </select>
           </div>
 
-          <!-- Upper Material -->
-          <div class="space-y-1">
+          <!-- Upper Material (Configurable via Module Settings) -->
+          <div v-if="moduleStore.productFieldUpperMaterial" class="space-y-1">
             <label class="font-bold text-slate-700 block">Upper Material</label>
             <input
               v-model="form.upper_material"
@@ -132,8 +131,8 @@
             />
           </div>
 
-          <!-- Sole Material -->
-          <div class="space-y-1 sm:col-span-2">
+          <!-- Sole Material (Configurable via Module Settings) -->
+          <div v-if="moduleStore.productFieldSoleMaterial" class="space-y-1 sm:col-span-2">
             <label class="font-bold text-slate-700 block">Sole Material</label>
             <input
               v-model="form.sole_material"
@@ -237,14 +236,27 @@
         </div>
       </div>
 
-      <!-- 3. DEFAULT PRICING & HSN -->
+      <!-- 3. DEFAULT PRICING (PURCHASE COST, MRP, SELLING PRICE) & HSN -->
       <div class="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
         <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
           <span class="text-base">🏷️</span>
-          <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">Default Pricing & HSN Tax</h2>
+          <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">Pricing & Tax Information</h2>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
+          <!-- Purchase Cost (formerly Cost Price) -->
+          <div class="space-y-1">
+            <label class="font-bold text-slate-700 block">Purchase Cost (₹)</label>
+            <input
+              v-model.number="form.cost_price"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="e.g. 500.00"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white"
+            />
+          </div>
+
           <div class="space-y-1">
             <label class="font-bold text-slate-700 block">MRP (₹) *</label>
             <input
@@ -272,18 +284,6 @@
           </div>
 
           <div class="space-y-1">
-            <label class="font-bold text-slate-700 block">Cost Price (₹)</label>
-            <input
-              v-model.number="form.cost_price"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="e.g. 500.00"
-              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white"
-            />
-          </div>
-
-          <div class="space-y-1">
             <label class="font-bold text-slate-700 block">HSN / Tax Code</label>
             <select
               v-model="form.hsn_code_id"
@@ -304,7 +304,7 @@
           <div class="flex items-center gap-2">
             <span class="text-base">📏</span>
             <div>
-              <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">Available Sizes Dynamic Selection</h2>
+              <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">Available Footwear Sizes</h2>
               <p class="text-[10px] text-slate-400 font-medium">
                 {{ activeChartName ? `Loaded from Size Chart: '${activeChartName}'` : 'Loaded from Central Size Master' }}
               </p>
@@ -341,17 +341,18 @@
         </div>
       </div>
 
-      <!-- 5. COLOR -> SIZE CHART -> STOCK WORKFLOW MATRIX -->
+      <!-- 5. SIZE-WISE PRODUCT DETAILS (FOOTWEAR SIZE | CURRENT STOCK | MRP | SELLING PRICE) -->
       <div class="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
           <div class="flex items-center gap-2">
-            <span class="text-base">🎨</span>
+            <span class="text-base">📦</span>
             <div>
-              <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">Color Variants & Size Stock Entry</h2>
-              <p class="text-[10px] text-slate-400 font-medium">Manage colorways, SKU pricing and inventory stock quantities.</p>
+              <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">Size-Wise Product Details</h2>
+              <p class="text-[10px] text-slate-400 font-medium">Manage sizes, prices and view current inventory stock.</p>
             </div>
           </div>
           <button
+            v-if="moduleStore.productFieldColor"
             type="button"
             @click="addColorBlock"
             class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5"
@@ -362,7 +363,7 @@
         </div>
 
         <div v-for="(colorBlock, colorIndex) in form.color_blocks" :key="colorIndex" class="border border-slate-200 rounded-2xl p-5 space-y-4 bg-slate-50/50">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/60 pb-3">
+          <div v-if="moduleStore.productFieldColor" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/60 pb-3">
             <div class="flex items-center gap-3 w-full sm:w-80 text-xs">
               <span class="font-black text-slate-800 shrink-0">Colorway #{{ colorIndex + 1 }}:</span>
               <select
@@ -387,62 +388,60 @@
             </button>
           </div>
 
-          <!-- Generated Size Chart Stock Table -->
+          <!-- Simplified Size-Wise Table -->
           <div class="overflow-x-auto bg-white rounded-xl border border-slate-200">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-100 border-b border-slate-200 text-[10px] font-black text-slate-500 uppercase">
+            <table class="w-full text-left text-xs font-sans">
+              <thead class="bg-slate-100 border-b border-slate-200 text-[10px] font-black text-slate-500 uppercase tracking-wider">
                 <tr>
                   <th class="px-4 py-2.5">Footwear Size</th>
-                  <th class="px-4 py-2.5">Auto SKU Preview</th>
-                  <th class="px-4 py-2.5">MRP (₹)</th>
-                  <th class="px-4 py-2.5">Selling Price (₹)</th>
-                  <th class="px-4 py-2.5">Current Stock Qty</th>
+                  <th class="px-4 py-2.5 text-center">Current Stock Qty</th>
+                  <th class="px-4 py-2.5 text-right">MRP (₹)</th>
+                  <th class="px-4 py-2.5 text-right">Selling Price (₹)</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 font-medium text-slate-800">
                 <tr v-if="colorBlock.size_rows.length === 0">
-                  <td colspan="5" class="px-4 py-6 text-center text-slate-400">
+                  <td colspan="4" class="px-4 py-6 text-center text-slate-400">
                     No sizes selected. Check sizes above to generate stock rows.
                   </td>
                 </tr>
-                <tr v-for="sizeRow in colorBlock.size_rows" :key="sizeRow.size_id || sizeRow.size_number">
-                  <td class="px-4 py-2 font-black text-slate-900">
-                    <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-900 font-bold">
+                <tr v-for="sizeRow in colorBlock.size_rows" :key="sizeRow.size_id || sizeRow.size_number" class="hover:bg-slate-50/80 transition-colors">
+                  <td class="px-4 py-2.5 font-black text-slate-900">
+                    <span class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-900 font-black">
                       Size {{ sizeRow.size_number }}
                     </span>
                   </td>
 
-                  <td class="px-4 py-2 font-mono text-[10px] font-bold text-red-600">
-                    {{ generateSkuPreview(colorBlock.color_id, sizeRow.size_number) }}
-                  </td>
-                  <td class="px-4 py-2">
-                    <input
-                      v-model.number="sizeRow.mrp"
-                      type="number"
-                      step="0.01"
-                      class="w-24 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold"
-                    />
-                  </td>
-                  <td class="px-4 py-2">
-                    <input
-                      v-model.number="sizeRow.selling_price"
-                      type="number"
-                      step="0.01"
-                      class="w-24 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-900"
-                    />
-                  </td>
-                  <td class="px-4 py-2">
+                  <td class="px-4 py-2.5 text-center">
                     <span
                       :class="[
                         'px-2.5 py-1 rounded-xl border text-xs font-mono font-black inline-flex items-center gap-1 shadow-2xs',
                         (sizeRow.current_stock ?? sizeRow.opening_stock ?? 0) > 0
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300'
-                          : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
                       ]"
                     >
                       <span>📦</span>
                       <span>{{ sizeRow.current_stock ?? sizeRow.opening_stock ?? 0 }} Units</span>
                     </span>
+                  </td>
+
+                  <td class="px-4 py-2.5 text-right">
+                    <input
+                      v-model.number="sizeRow.mrp"
+                      type="number"
+                      step="0.01"
+                      class="w-24 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-right ml-auto"
+                    />
+                  </td>
+
+                  <td class="px-4 py-2.5 text-right">
+                    <input
+                      v-model.number="sizeRow.selling_price"
+                      type="number"
+                      step="0.01"
+                      class="w-24 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-900 text-right ml-auto"
+                    />
                   </td>
                 </tr>
               </tbody>
@@ -462,7 +461,7 @@
         <button
           type="submit"
           :disabled="submitting"
-          class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-xs transition-all shadow-md shadow-red-600/20 flex items-center gap-2"
+          class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-xs transition-all shadow-md shadow-red-600/20 flex items-center gap-2 cursor-pointer active:scale-95"
         >
           <span>💾</span>
           <span>{{ submitting ? 'Updating...' : 'Save Product Updates' }}</span>
@@ -477,10 +476,12 @@ import { ref, reactive, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../../services/api';
 import { useToast } from '../../composables/useToast';
+import { useModuleStore } from '../../stores/moduleStore';
 
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
+const moduleStore = useModuleStore();
 
 const categories = ref([]);
 const brands = ref([]);
@@ -509,7 +510,7 @@ const form = reactive({
   brand_id: '',
   category_id: '',
   size_chart_id: null,
-  gender: 'men',
+  gender: 'unisex',
   upper_material: '',
   sole_material: '',
   description: '',
@@ -570,6 +571,19 @@ function removeImage() {
   }
 }
 
+function sortSizesNumerically(list) {
+  return [...list].sort((a, b) => {
+    const valA = String(a.size_number || a.name || a);
+    const valB = String(b.size_number || b.name || b);
+    const numA = parseFloat(valA.replace(/[^0-9.]/g, ''));
+    const numB = parseFloat(valB.replace(/[^0-9.]/g, ''));
+    if (!isNaN(numA) && !isNaN(numB)) {
+      return numA - numB;
+    }
+    return valA.localeCompare(valB, undefined, { numeric: true });
+  });
+}
+
 async function onCategoryChange() {
   if (!form.category_id) return;
   try {
@@ -604,7 +618,7 @@ async function updateAvailableSizes() {
           };
         }).filter(s => s.size_number !== '');
 
-        availableSizes.value = extracted;
+        availableSizes.value = sortSizesNumerically(extracted);
       } else {
         fallbackToMasterSizes();
       }
@@ -615,7 +629,6 @@ async function updateAvailableSizes() {
     fallbackToMasterSizes();
   }
 
-  // Preserve existing checked size selections if present, or select all available
   const currentChecked = new Set(selectedSizes.value);
   if (currentChecked.size === 0) {
     selectedSizes.value = availableSizes.value.map(s => s.size_number);
@@ -632,10 +645,12 @@ async function updateAvailableSizes() {
 
 function fallbackToMasterSizes() {
   activeChartName.value = '';
-  availableSizes.value = sizesMaster.value.map(s => ({
-    id: s.id,
-    size_number: String(s.size_number),
-  }));
+  availableSizes.value = sortSizesNumerically(
+    sizesMaster.value.map(s => ({
+      id: s.id,
+      size_number: String(s.size_number),
+    }))
+  );
 }
 
 function onSelectedSizesChange() {
@@ -669,7 +684,7 @@ function addColorBlock() {
   const selectedObjects = availableSizes.value.filter(s => selectedSizes.value.includes(s.size_number));
 
   form.color_blocks.push({
-    color_id: defaultColor?.id || '',
+    color_id: defaultColor?.id || (colors.value[0]?.id || ''),
     size_rows: selectedObjects.map(sz => ({
       size_id: sz.id,
       size_number: sz.size_number,
@@ -686,14 +701,6 @@ function removeColorBlock(index) {
   }
 }
 
-function generateSkuPreview(colorId, sizeNumber) {
-  const art = (form.article_number || 'RP').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-  const colorObj = colors.value.find(c => c.id === colorId);
-  const colCode = (colorObj?.code || 'BLK').toUpperCase();
-  const szStr = String(sizeNumber).padStart(2, '0');
-  return `${art}-${colCode}-${szStr}`;
-}
-
 watch([() => form.mrp, () => form.selling_price], ([newMrp, newSp]) => {
   form.color_blocks.forEach(block => {
     block.size_rows.forEach(row => {
@@ -706,6 +713,7 @@ watch([() => form.mrp, () => form.selling_price], ([newMrp, newSp]) => {
 async function fetchMasterDataAndProduct() {
   loading.value = true;
   try {
+    await moduleStore.fetchSettings();
     const [cRes, bRes, sRes, colRes, hsnRes, scRes, pRes] = await Promise.all([
       api.get('/categories'),
       api.get('/brands'),
@@ -718,7 +726,7 @@ async function fetchMasterDataAndProduct() {
 
     categories.value = cRes.data || [];
     brands.value = bRes.data || [];
-    sizesMaster.value = sRes.data || [];
+    sizesMaster.value = sortSizesNumerically(sRes.data || []);
     colors.value = colRes.data || [];
     hsnCodes.value = hsnRes.data || [];
     sizeCharts.value = scRes.data || [];
@@ -726,7 +734,7 @@ async function fetchMasterDataAndProduct() {
     const p = pRes.data;
     form.id = p.id;
     form.article_number = p.article_number || '';
-    form.name = p.name || '';
+    form.name = p.name || p.article_number || '';
     form.brand_id = p.brand_id || (brands.value[0]?.id || '');
     form.category_id = p.category_id || (categories.value[0]?.id || '');
     form.size_chart_id = p.size_chart_id || null;
@@ -772,7 +780,7 @@ async function fetchMasterDataAndProduct() {
         });
 
         return {
-          color_id: variant.color_id,
+          color_id: variant.color_id || (colors.value[0]?.id || ''),
           size_rows: sizeRows,
         };
       });
@@ -799,14 +807,18 @@ async function submitUpdate() {
 
   submitting.value = true;
   try {
+    if (!form.name || form.name.trim() === '') {
+      form.name = form.article_number.trim();
+    }
+
     const formData = new FormData();
     formData.append('article_number', form.article_number);
     formData.append('name', form.name);
-    formData.append('brand_id', form.brand_id);
-    formData.append('category_id', form.category_id);
-    formData.append('size_chart_id', form.size_chart_id || '');
-    formData.append('hsn_code_id', form.hsn_code_id || '');
-    formData.append('gender', form.gender);
+    if (form.brand_id) formData.append('brand_id', form.brand_id);
+    if (form.category_id) formData.append('category_id', form.category_id);
+    if (form.size_chart_id) formData.append('size_chart_id', form.size_chart_id);
+    if (form.hsn_code_id) formData.append('hsn_code_id', form.hsn_code_id);
+    formData.append('gender', form.gender || 'unisex');
     formData.append('upper_material', form.upper_material || '');
     formData.append('sole_material', form.sole_material || '');
     formData.append('description', form.description || '');

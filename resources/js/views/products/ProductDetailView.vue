@@ -55,7 +55,7 @@
 
         <div class="md:col-span-8 space-y-4 text-xs">
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-xl">
-            <div>
+            <div v-if="moduleStore.isModuleEnabled('productFieldCategory')">
               <span class="text-slate-400 block text-[10px] font-bold uppercase">Category</span>
               <span class="font-black text-slate-900 text-sm">{{ product.category?.name || 'N/A' }}</span>
             </div>
@@ -63,17 +63,17 @@
               <span class="text-slate-400 block text-[10px] font-bold uppercase">Brand Partner</span>
               <span class="font-black text-slate-900 text-sm">{{ product.brand?.name || 'N/A' }}</span>
             </div>
-            <div>
+            <div v-if="moduleStore.isModuleEnabled('productFieldGender')">
               <span class="text-slate-400 block text-[10px] font-bold uppercase">Gender Target</span>
               <span class="font-black text-purple-700 text-sm uppercase">{{ product.gender || 'Unisex' }}</span>
             </div>
-            <div>
+            <div v-if="moduleStore.isModuleEnabled('productFieldUpperMaterial')">
               <span class="text-slate-400 block text-[10px] font-bold uppercase">Upper Material</span>
-              <span class="font-bold text-slate-800">{{ product.upper_material || 'Genuine Leather' }}</span>
+              <span class="font-bold text-slate-800">{{ product.upper_material || 'N/A' }}</span>
             </div>
-            <div>
+            <div v-if="moduleStore.isModuleEnabled('productFieldSoleMaterial')">
               <span class="text-slate-400 block text-[10px] font-bold uppercase">Sole Material</span>
-              <span class="font-bold text-slate-800">{{ product.sole_material || 'TPR Rubber' }}</span>
+              <span class="font-bold text-slate-800">{{ product.sole_material || 'N/A' }}</span>
             </div>
             <div>
               <span class="text-slate-400 block text-[10px] font-bold uppercase">HSN Code</span>
@@ -94,16 +94,23 @@
       <div class="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
           <div class="flex items-center gap-2">
-            <span class="text-base">🎨</span>
-            <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">Color Variants & Size SKUs Matrix</h2>
+            <span class="text-base">{{ moduleStore.isModuleEnabled('productFieldColor') ? '🎨' : '📏' }}</span>
+            <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">
+              {{ moduleStore.isModuleEnabled('productFieldColor') ? 'Color Variants & Size SKUs Matrix' : 'Size SKUs Matrix' }}
+            </h2>
           </div>
           <span class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-xl">
-            {{ product.variants?.length || 0 }} Colors / {{ totalSkus }} Size SKUs
+            <template v-if="moduleStore.isModuleEnabled('productFieldColor')">
+              {{ product.variants?.length || 0 }} Colors / {{ totalSkus }} Size SKUs
+            </template>
+            <template v-else>
+              {{ totalSkus }} Size SKUs
+            </template>
           </span>
         </div>
 
         <div v-for="variant in product.variants" :key="variant.id" class="border border-slate-200 rounded-xl p-4 space-y-3 bg-slate-50/50">
-          <div class="flex items-center gap-2 font-black text-slate-900 text-sm">
+          <div v-if="moduleStore.isModuleEnabled('productFieldColor')" class="flex items-center gap-2 font-black text-slate-900 text-sm">
             <span
               class="h-4 w-4 rounded-full border border-slate-300 shadow-2xs"
               :style="{ backgroundColor: variant.color?.hex_code || '#000' }"
@@ -116,11 +123,9 @@
               <thead class="bg-slate-100 border-b border-slate-200 text-[10px] font-black text-slate-500 uppercase">
                 <tr>
                   <th class="px-4 py-2.5">Size (IND)</th>
-                  <th class="px-4 py-2.5">SKU Code</th>
-                  <th class="px-4 py-2.5">Barcode</th>
+                  <th class="px-4 py-2.5">Available Stock</th>
                   <th class="px-4 py-2.5">MRP (₹)</th>
                   <th class="px-4 py-2.5">Selling Price (₹)</th>
-                  <th class="px-4 py-2.5">Available Stock</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 font-medium text-slate-800">
@@ -128,13 +133,11 @@
                   <td class="px-4 py-2 font-black text-slate-900">
                     IND {{ s.size_number || s.size?.size_number || s.size_id }}
                   </td>
-                  <td class="px-4 py-2 font-mono text-[10px] font-bold text-red-600">{{ s.sku }}</td>
-                  <td class="px-4 py-2 font-mono text-[10px] text-slate-500">{{ s.barcode || 'N/A' }}</td>
-                  <td class="px-4 py-2 font-bold text-slate-400 line-through">₹{{ s.mrp }}</td>
-                  <td class="px-4 py-2 font-black text-slate-900">₹{{ s.selling_price }}</td>
                   <td class="px-4 py-2 font-black text-emerald-700">
                     {{ s.stock_quantity ?? 0 }} prs
                   </td>
+                  <td class="px-4 py-2 font-bold text-slate-400 line-through">₹{{ s.mrp }}</td>
+                  <td class="px-4 py-2 font-black text-slate-900">₹{{ s.selling_price }}</td>
                 </tr>
               </tbody>
             </table>
@@ -149,10 +152,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuth } from '../../composables/useAuth';
+import { useModuleStore } from '../../stores/moduleStore';
 import api from '../../services/api';
 
 const route = useRoute();
 const { hasPermission } = useAuth();
+const moduleStore = useModuleStore();
 
 const product = ref(null);
 const loading = ref(false);
@@ -175,6 +180,9 @@ async function fetchProductDetails() {
 }
 
 onMounted(() => {
+  if (!moduleStore.initialized) {
+    moduleStore.fetchSettings();
+  }
   fetchProductDetails();
 });
 </script>

@@ -374,4 +374,122 @@ class InventoryStockController extends Controller
             'Inventory stock details retrieved successfully.'
         );
     }
+
+    public function bulkAdd(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'store_id' => 'required|integer|exists:stores,id',
+            'product_id' => 'required|integer|exists:products,id',
+            'notes' => 'nullable|string|max:500',
+            'items' => 'required|array|min:1',
+            'items.*.product_variant_size_id' => 'required|integer|exists:product_variant_sizes,id',
+            'items.*.quantity' => 'required|integer|min:1',
+        ]);
+
+        $storeId = (int) $validated['store_id'];
+        $productId = (int) $validated['product_id'];
+        $notes = trim((string) ($validated['notes'] ?? 'Direct Stock Add'));
+        $items = $validated['items'];
+
+        // Non-Super Admin Store Isolation Check
+        if (! $user->roles()->where('name', 'Super Admin')->exists()) {
+            $userStoreIds = $user->stores()->pluck('stores.id');
+            if (! $userStoreIds->contains($storeId)) {
+                return $this->errorResponse('Forbidden: You are not authorized to add stock for this store.', 403);
+            }
+        }
+
+        $store = \App\Models\Store::find($storeId);
+        $product = Product::with(['brand'])->find($productId);
+
+        if (! $product) {
+            return $this->errorResponse('Product not found.', 404);
+        }
+
+        try {
+            $updatedSummary = \Illuminate\Support\Facades\DB::transaction(function () use ($items, $storeId, $product, $user, $notes) {
+                $updatedItems = [];
+                $totalQuantityAdded = 0;
+
+                /** @var \App\Services\InventoryService $inventoryService */
+                $inventoryService = app(\App\Services\InventoryService::class);
+
+                foreach ($items as $item) {
+                    $pvsId = (int) $item['product_variant_size_id'];
+                    $qtyToAdd = (int) $item['quantity'];
+
+                    if ($qtyToAdd <= 0) {
+                        continue;
+                    }
+
+                    $pvs = ProductVariantSize::with(['variant', 'size'])->find($pvsId);
+                    if (! $pvs || $pvs->variant?->product_id !== $product->id) {
+                        throw new \InvalidArgumentException("Variant size ID {$pvsId} does not belong to product ID {$product->id}.");
+                    }
+
+                    $stockRecord = $inventoryService->getStockRecord($pvsId, $storeId, 0, 0, true);
+                    $previousStock = (int) $stockRecord->stock_quantity;
+
+                    $updatedStockRecord = $inventoryService->addStock(
+                        productVariantSizeId: $pvsId,
+                        quantity: $qtyToAdd,
+                        movementType: \App\Enums\StockMovementType::ADJUSTMENT_ADD,
+                        referenceType: 'stock_add',
+                        referenceId: null,
+                        storeId: $storeId,
+                        warehouseId: 0,
+                        stockLocationId: 0,
+                        user: $user,
+                        notes: $notes ?: 'Direct Stock Add'
+                    );
+
+                    $newStock = (int) $updatedStockRecord->stock_quantity;
+                    $totalQuantityAdded += $qtyToAdd;
+
+                    $sizeNum = $pvs->size?->size_number ?? 'N/A';
+                    $sizeDisplay = is_numeric($sizeNum) || str_starts_with(strtoupper($sizeNum), 'IND')
+                        ? (str_starts_with(strtoupper($sizeNum), 'IND') ? $sizeNum : 'IND ' . $sizeNum)
+                        : $sizeNum;
+
+                    $updatedItems[] = [
+                        'product_variant_size_id' => $pvsId,
+                        'sku' => $pvs->sku,
+                        'size_name' => $sizeDisplay,
+                        'previous_stock' => $previousStock,
+                        'added_quantity' => $qtyToAdd,
+                        'new_stock' => $newStock,
+                    ];
+                }
+
+                if (count($updatedItems) === 0) {
+                    throw new \InvalidArgumentException('No valid positive stock addition quantities were provided.');
+                }
+
+                return [
+                    'total_items_updated' => count($updatedItems),
+                    'total_quantity_added' => $totalQuantityAdded,
+                    'updated_items' => $updatedItems,
+                ];
+            });
+
+            return $this->successResponse([
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'article_number' => $product->article_number ?? 'N/A',
+                'brand_name' => $product->brand?->name ?? 'RUPSA',
+                'store_id' => $store->id,
+                'store_name' => $store->name,
+                'total_items_updated' => $updatedSummary['total_items_updated'],
+                'total_quantity_added' => $updatedSummary['total_quantity_added'],
+                'updated_items' => $updatedSummary['updated_items'],
+            ], 'Stock updated successfully.');
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        } catch (\Throwable $e) {
+            return $this->errorResponse('Stock update failed: ' . $e->getMessage(), 500);
+        }
+    }
 }
+

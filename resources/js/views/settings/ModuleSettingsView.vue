@@ -211,6 +211,149 @@
         </div>
       </div>
     </div>
+
+    <!-- 3. PRODUCT FIELDS CONFIGURATION (DYNAMIC PRODUCT ATTRIBUTES) -->
+    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+      <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-base">👟</span>
+          <h2 class="text-xs font-extrabold uppercase tracking-wider">Product Fields Configuration</h2>
+        </div>
+        <span class="text-[10px] font-bold bg-slate-800 px-2 py-0.5 rounded text-slate-300">Footwear Field Toggles</span>
+      </div>
+
+      <div class="p-5 space-y-6 divide-y divide-slate-100 text-xs">
+        <!-- CATEGORY TOGGLE -->
+        <div class="pt-2 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1 max-w-xl">
+            <div class="font-black text-slate-900 text-sm">Category Field</div>
+            <p class="text-slate-600 leading-relaxed">
+              Show Category dropdown in Add/Edit Product forms and Master Data navigation. (Default: OFF for simplified footwear entry).
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="toggleModule('productFieldCategory')"
+            :disabled="saving"
+            :class="[
+              'relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out',
+              moduleStore.productFieldCategory ? 'bg-red-600' : 'bg-slate-300'
+            ]"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out',
+                moduleStore.productFieldCategory ? 'translate-x-6' : 'translate-x-0'
+              ]"
+            ></span>
+          </button>
+        </div>
+
+        <!-- GENDER TOGGLE -->
+        <div class="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1 max-w-xl">
+            <div class="font-black text-slate-900 text-sm">Gender Field</div>
+            <p class="text-slate-600 leading-relaxed">
+              Show Gender Target selector (Men, Women, Boys, Girls, Unisex) in product forms.
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="toggleModule('productFieldGender')"
+            :disabled="saving"
+            :class="[
+              'relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out',
+              moduleStore.productFieldGender ? 'bg-red-600' : 'bg-slate-300'
+            ]"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out',
+                moduleStore.productFieldGender ? 'translate-x-6' : 'translate-x-0'
+              ]"
+            ></span>
+          </button>
+        </div>
+
+        <!-- UPPER MATERIAL TOGGLE -->
+        <div class="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1 max-w-xl">
+            <div class="font-black text-slate-900 text-sm">Upper Material Field</div>
+            <p class="text-slate-600 leading-relaxed">
+              Show Upper Material field (e.g. Leather, Mesh, Synthetic) in product creation forms.
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="toggleModule('productFieldUpperMaterial')"
+            :disabled="saving"
+            :class="[
+              'relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out',
+              moduleStore.productFieldUpperMaterial ? 'bg-red-600' : 'bg-slate-300'
+            ]"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out',
+                moduleStore.productFieldUpperMaterial ? 'translate-x-6' : 'translate-x-0'
+              ]"
+            ></span>
+          </button>
+        </div>
+
+        <!-- SOLE MATERIAL TOGGLE -->
+        <div class="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1 max-w-xl">
+            <div class="font-black text-slate-900 text-sm">Sole Material Field</div>
+            <p class="text-slate-600 leading-relaxed">
+              Show Sole Material specification field (e.g. Rubber, TPR, EVA) in product creation forms.
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="toggleModule('productFieldSoleMaterial')"
+            :disabled="saving"
+            :class="[
+              'relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out',
+              moduleStore.productFieldSoleMaterial ? 'bg-red-600' : 'bg-slate-300'
+            ]"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out',
+                moduleStore.productFieldSoleMaterial ? 'translate-x-6' : 'translate-x-0'
+              ]"
+            ></span>
+          </button>
+        </div>
+
+        <!-- COLOR TOGGLE -->
+        <div class="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1 max-w-xl">
+            <div class="font-black text-slate-900 text-sm">Color Variant Management</div>
+            <p class="text-slate-600 leading-relaxed">
+              Enable multi-colorway creation, color selection and "Add another color" blocks in product forms.
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="toggleModule('productFieldColor')"
+            :disabled="saving"
+            :class="[
+              'relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out',
+              moduleStore.productFieldColor ? 'bg-red-600' : 'bg-slate-300'
+            ]"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out',
+                moduleStore.productFieldColor ? 'translate-x-6' : 'translate-x-0'
+              ]"
+            ></span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 

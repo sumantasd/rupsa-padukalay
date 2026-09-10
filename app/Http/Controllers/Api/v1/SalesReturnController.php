@@ -455,8 +455,7 @@ class SalesReturnController extends Controller
                 // 4. Recalculate original invoice return status
                 $originalInvoiceId = $returnSale->original_invoice_id;
 
-                // Delete return items and return record first so remaining returned query is accurate
-                ReturnItem::where('return_id', $returnSale->id)->delete();
+                // Soft Delete ReturnSale (ReturnItems are preserved for Recycle Bin recovery)
                 $returnSale->delete();
 
                 if ($originalInvoiceId) {

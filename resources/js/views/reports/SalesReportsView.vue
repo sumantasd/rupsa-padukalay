@@ -45,22 +45,33 @@
         </span>
       </div>
 
-      <!-- Sub-tabs Pills -->
-      <div class="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl overflow-x-auto no-scrollbar">
+      <!-- Sub-tabs Pills & EXPORT PDF Action Button -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-1.5 bg-slate-100 dark:bg-slate-950 rounded-xl">
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            type="button"
+            @click="activeTab = tab.id"
+            :class="[
+              'py-2 px-3.5 rounded-lg font-extrabold text-xs transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer',
+              activeTab === tab.id
+                ? 'bg-red-600 text-white shadow-xs shadow-red-600/30'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            ]"
+          >
+            <span>{{ tab.icon }}</span>
+            <span>{{ tab.label }}</span>
+          </button>
+        </div>
+
         <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          type="button"
-          @click="activeTab = tab.id"
-          :class="[
-            'py-2 px-3.5 rounded-lg font-extrabold text-xs transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer',
-            activeTab === tab.id
-              ? 'bg-red-600 text-white shadow-xs shadow-red-600/30'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          ]"
+          @click="handleDownloadPdf"
+          class="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs shadow-md shadow-red-600/30 transition-all cursor-pointer whitespace-nowrap min-h-[36px]"
+          title="Export Currently Selected Report to PDF"
         >
-          <span>{{ tab.icon }}</span>
-          <span>{{ tab.label }}</span>
+          <span>📄</span>
+          <span>EXPORT PDF</span>
         </button>
       </div>
     </div>
@@ -257,8 +268,37 @@
       </div>
     </div>
 
-    <!-- TAB 2: ITEM-WISE SALES -->
+    <!-- TAB 2: ITEM & SIZE-WISE SALES -->
     <div v-else-if="activeTab === 'item_wise'" class="space-y-3">
+      <!-- Item & Size-Wise Sales Action Header Banner -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs">
+        <div>
+          <h3 class="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+            <span>📦</span>
+            <span>Item & Size-wise Sales Breakdown</span>
+          </h3>
+          <p class="text-xs text-slate-500 font-medium">Stock management breakdown showing exact quantity sold per article and size</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            @click="handleViewPdf"
+            class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-xs transition-all cursor-pointer min-h-[38px]"
+            title="View PDF Report in Browser"
+          >
+            <span>👁️</span>
+            <span>VIEW PDF</span>
+          </button>
+          <button
+            @click="handleDownloadPdf"
+            class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs shadow-md shadow-red-600/30 transition-all cursor-pointer min-h-[38px]"
+            title="Download Item & Size-wise Sales PDF Report"
+          >
+            <span>📄</span>
+            <span>EXPORT PDF</span>
+          </button>
+        </div>
+      </div>
+
       <div v-if="itemWiseSales.length === 0" class="p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
         <div class="text-3xl text-slate-400">📦</div>
         <h3 class="font-black text-sm text-slate-700 dark:text-slate-300">No Item Sales Records Found</h3>
@@ -270,36 +310,27 @@
         <div class="space-y-3 md:hidden">
           <div
             v-for="item in itemWiseSales"
-            :key="item.sku || item.product_name"
+            :key="item.sku || item.product_name + item.size"
             class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-2"
           >
             <div class="flex items-start justify-between">
               <div>
                 <h4 class="font-black text-sm text-slate-900 dark:text-white">{{ item.product_name }}</h4>
-                <p class="text-[11px] text-slate-500 font-mono">Art: {{ item.article_number || '-' }} • SKU: {{ item.sku || '-' }}</p>
-                <p class="text-[10px] text-slate-400">{{ item.color }} / Size: {{ item.size }}</p>
+                <p class="text-[11px] text-slate-500 font-mono">Item #: {{ item.article_number || 'N/A' }} • SKU: {{ item.sku || 'N/A' }}</p>
               </div>
-              <span :class="['px-2 py-0.5 text-[9px] font-black rounded-md uppercase', item.gross_profit >= 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300']">
-                {{ item.margin_pct }}% MARGIN
+              <span class="px-2.5 py-1 text-xs font-black rounded-lg bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300">
+                Size {{ item.size }}
               </span>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl text-xs">
+            <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl text-xs">
               <div>
-                <span class="text-[10px] font-extrabold text-slate-400 uppercase block">Qty Sold</span>
-                <span class="font-mono font-black text-slate-900 dark:text-white">{{ item.qty_sold }} pairs</span>
+                <span class="text-[10px] font-extrabold text-slate-400 uppercase block">Quantity Sold</span>
+                <span class="font-mono font-black text-slate-900 dark:text-white text-sm">{{ item.qty_sold }} PCS</span>
               </div>
-              <div>
-                <span class="text-[10px] font-extrabold text-slate-400 uppercase block">Net Sales</span>
+              <div class="text-right">
+                <span class="text-[10px] font-extrabold text-slate-400 uppercase block">Net Revenue</span>
                 <span class="font-mono font-black text-emerald-600">₹{{ formatCurrency(item.net_sales) }}</span>
-              </div>
-              <div>
-                <span class="text-[10px] font-extrabold text-slate-400 uppercase block">COGS</span>
-                <span class="font-mono text-slate-500">₹{{ formatCurrency(item.cogs) }}</span>
-              </div>
-              <div>
-                <span class="text-[10px] font-extrabold text-slate-400 uppercase block">Gross Profit</span>
-                <span :class="['font-mono font-black', item.gross_profit >= 0 ? 'text-emerald-600' : 'text-red-600']">₹{{ formatCurrency(item.gross_profit) }}</span>
               </div>
             </div>
           </div>
@@ -307,45 +338,35 @@
 
         <!-- Desktop Table (≥768px) -->
         <div class="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 overflow-x-auto shadow-xs">
-          <table class="w-full text-left text-xs font-sans whitespace-nowrap min-w-[800px]">
+          <table class="w-full text-left text-xs font-sans whitespace-nowrap">
             <thead class="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase font-black tracking-wider text-slate-500 dark:text-slate-400">
               <tr>
-                <th class="py-3 px-4">Product / Item</th>
-                <th class="py-3 px-4">Article No</th>
-                <th class="py-3 px-4">SKU</th>
-                <th class="py-3 px-4 text-center">Qty Sold</th>
-                <th class="py-3 px-4 text-right">Gross Sales</th>
-                <th class="py-3 px-4 text-right">Discount</th>
-                <th class="py-3 px-4 text-right">Net Sales</th>
-                <th class="py-3 px-4 text-right">COGS</th>
-                <th class="py-3 px-4 text-right">Gross Profit</th>
-                <th class="py-3 px-4 text-right">Margin %</th>
+                <th class="py-3 px-4">Item Number / Article</th>
+                <th class="py-3 px-4">Item Name</th>
+                <th class="py-3 px-4 text-center">Size</th>
+                <th class="py-3 px-4 text-center">Quantity Sold</th>
+                <th class="py-3 px-4 text-right">Net Sales (₹)</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-              <tr v-for="item in itemWiseSales" :key="item.sku || item.product_name" class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                <td class="py-3 px-4">
-                  <span class="font-extrabold text-slate-900 dark:text-white block">{{ item.product_name }}</span>
-                  <span class="text-[10px] text-slate-400" v-if="item.color || item.size">{{ item.color }} {{ item.size ? `/ Size: ${item.size}` : '' }}</span>
-                </td>
-                <td class="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">{{ item.article_number || '-' }}</td>
-                <td class="py-3 px-4 font-mono text-slate-500">{{ item.sku || '-' }}</td>
-                <td class="py-3 px-4 text-center font-mono font-black text-slate-900 dark:text-white">{{ item.qty_sold }}</td>
-                <td class="py-3 px-4 text-right font-mono text-slate-700 dark:text-slate-300">₹{{ formatCurrency(item.gross_sales) }}</td>
-                <td class="py-3 px-4 text-right font-mono text-amber-600">₹{{ formatCurrency(item.discount) }}</td>
-                <td class="py-3 px-4 text-right font-mono font-extrabold text-slate-900 dark:text-white">₹{{ formatCurrency(item.net_sales) }}</td>
-                <td class="py-3 px-4 text-right font-mono text-slate-500">₹{{ formatCurrency(item.cogs) }}</td>
-                <td :class="['py-3 px-4 text-right font-mono font-black', item.gross_profit >= 0 ? 'text-emerald-600' : 'text-red-600']">
-                  ₹{{ formatCurrency(item.gross_profit) }}
-                </td>
-                <td class="py-3 px-4 text-right font-mono">
-                  <span :class="['px-2 py-0.5 text-[9px] font-black rounded-md', item.margin_pct >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800']">
-                    {{ item.margin_pct }}%
-                  </span>
-                </td>
+              <tr v-for="item in itemWiseSales" :key="item.sku || item.product_name + item.size" class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                <td class="py-3 px-4 font-mono font-extrabold text-slate-900 dark:text-white">{{ item.article_number || '-' }}</td>
+                <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">{{ item.product_name }}</td>
+                <td class="py-3 px-4 text-center font-mono font-black text-red-600 dark:text-red-400">{{ item.size }}</td>
+                <td class="py-3 px-4 text-center font-mono font-black text-slate-900 dark:text-white">{{ item.qty_sold }} PCS</td>
+                <td class="py-3 px-4 text-right font-mono font-bold text-emerald-600">₹{{ formatCurrency(item.net_sales) }}</td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Total Units Sold Summary Bar -->
+        <div class="flex items-center justify-between p-4 bg-slate-900 text-white rounded-2xl shadow-md font-bold text-sm">
+          <span class="flex items-center gap-2">
+            <span>📦</span>
+            <span>Total Units Sold:</span>
+          </span>
+          <span class="font-mono font-black text-lg text-emerald-400">{{ totalItemsSold }} PCS</span>
         </div>
       </div>
     </div>

@@ -26,6 +26,7 @@ import SupplierListView from '../views/crm/SupplierListView.vue';
 import SupplierFormView from '../views/crm/SupplierFormView.vue';
 import SupplierDetailView from '../views/crm/SupplierDetailView.vue';
 import StockOverviewView from '../views/inventory/StockOverviewView.vue';
+import StockAddView from '../views/inventory/StockAddView.vue';
 import StockMovementsView from '../views/inventory/StockMovementsView.vue';
 import StockAdjustmentsView from '../views/inventory/StockAdjustmentsView.vue';
 import StockTransfersView from '../views/inventory/StockTransfersView.vue';
@@ -153,6 +154,7 @@ const routes = [
 
             // Inventory Routes
             { path: 'inventory/stock', name: 'stock-overview', component: StockOverviewView, meta: { permission: 'inventory.view' } },
+            { path: 'inventory/stock-add', name: 'stock-add', component: StockAddView, meta: { permission: 'inventory.adjust|inventory.view' } },
             { path: 'inventory/movements', name: 'stock-movements', component: StockMovementsView, meta: { permission: 'inventory.view' } },
             { path: 'inventory/adjustments', name: 'stock-adjustments', component: StockAdjustmentsView, meta: { permission: 'inventory.adjust' } },
             { path: 'inventory/transfers', name: 'stock-transfers', component: StockTransfersView, meta: { permission: 'inventory.transfer' } },

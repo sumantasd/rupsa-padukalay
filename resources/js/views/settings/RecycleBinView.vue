@@ -227,7 +227,7 @@
 import { ref, computed, onMounted } from 'vue';
 import api from '../../services/api';
 
-const activeTab = ref('products');
+const activeTab = ref('sales');
 const searchQuery = ref('');
 const items = ref([]);
 const loading = ref(false);
@@ -242,6 +242,9 @@ const meta = ref({
 });
 
 const tabs = [
+  { id: 'sales', name: 'Sales', icon: '🧾' },
+  { id: 'sales_returns', name: 'Sale Returns', icon: '↩️' },
+  { id: 'sales_exchanges', name: 'Sale Exchanges', icon: '🔄' },
   { id: 'products', name: 'Products', icon: '👟' },
   { id: 'customers', name: 'Customers', icon: '👥' },
   { id: 'suppliers', name: 'Suppliers', icon: '🏭' },

@@ -61,8 +61,41 @@ class ModuleSettingTest extends TestCase
                 'success' => true,
                 'data' => [
                     'allow_new_store_creation' => false,
+                    'product_field_category' => false,
+                    'product_field_gender' => false,
+                    'product_field_upper_material' => false,
+                    'product_field_sole_material' => false,
+                    'product_field_color' => false,
                 ],
             ]);
+    }
+
+    public function test_update_product_field_module_settings_toggles(): void
+    {
+        Sanctum::actingAs($this->adminUser);
+
+        $response = $this->putJson('/api/v1/module-settings', [
+            'product_field_category' => true,
+            'product_field_gender' => true,
+            'product_field_upper_material' => true,
+            'product_field_sole_material' => true,
+            'product_field_color' => true,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'product_field_category' => true,
+                    'product_field_gender' => true,
+                    'product_field_upper_material' => true,
+                    'product_field_sole_material' => true,
+                    'product_field_color' => true,
+                ],
+            ]);
+
+        $this->assertEquals('1', CmsSetting::getSetting('product_field_category'));
+        $this->assertEquals('1', CmsSetting::getSetting('product_field_color'));
     }
 
     public function test_update_allow_new_store_creation_toggle_persists_setting(): void

@@ -107,22 +107,20 @@ class ReportPdfService
                 break;
 
             case 'sales_itemwise':
+            case 'item_size_sales':
                 $summary = $this->reportService->getItemWiseSales($user, $filters);
+                $totalUnits = $summary['summary']['total_qty_sold'] ?? 0;
+                $baseData['title'] = 'ITEM & SIZE-WISE SALES REPORT';
                 $baseData['kpis'] = [
-                    ['label' => 'Total Units Sold', 'value' => number_format($summary['total_units_sold'] ?? 0) . ' pcs'],
-                    ['label' => 'Total Billed Revenue', 'value' => '₹' . number_format($summary['total_revenue'] ?? 0, 2)],
-                    ['label' => 'Unique Articles Sold', 'value' => number_format(count($summary['items'] ?? []))],
+                    ['label' => 'Total Units Sold', 'value' => number_format($totalUnits) . ' PCS'],
                 ];
-                $baseData['headers'] = ['Article #', 'Product Name', 'Category', 'Brand', 'Size', 'Qty Sold', 'Revenue (₹)'];
+                $baseData['headers'] = ['Item Number', 'Item Name', 'Size', 'Quantity Sold'];
                 $baseData['rows'] = collect($summary['items'] ?? [])->map(function ($item) {
                     return [
                         $item['article_number'] ?? 'N/A',
                         $item['product_name'] ?? 'N/A',
-                        $item['category_name'] ?? 'N/A',
-                        $item['brand_name'] ?? 'N/A',
-                        'IND ' . ($item['size_number'] ?? 'N/A'),
-                        number_format($item['total_quantity_sold'] ?? 0) . ' pcs',
-                        '₹' . number_format($item['total_revenue'] ?? 0, 2),
+                        $item['size'] ?? 'N/A',
+                        number_format($item['qty_sold'] ?? 0) . ' PCS',
                     ];
                 })->toArray();
                 break;

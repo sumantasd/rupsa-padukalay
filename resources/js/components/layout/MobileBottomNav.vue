@@ -13,7 +13,7 @@
         <span class="text-[10px] tracking-tight mt-0.5">Home</span>
       </RouterLink>
 
-      <!-- 2. INVENTORY -->
+      <!-- 2. STOCK -->
       <RouterLink
         to="/admin/inventory/stock"
         :class="[
@@ -22,7 +22,7 @@
         ]"
       >
         <span class="text-lg">📦</span>
-        <span class="text-[10px] tracking-tight mt-0.5">Inventory</span>
+        <span class="text-[10px] tracking-tight mt-0.5">Stock</span>
         <span v-if="notificationStore.unreadCount > 0" class="absolute top-1 right-3 w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
       </RouterLink>
 
@@ -37,16 +37,16 @@
         </RouterLink>
       </div>
 
-      <!-- 4. PAYMENTS -->
+      <!-- 4. REPORTS -->
       <RouterLink
-        to="/admin/payments/collections"
+        to="/admin/reports/sales"
         :class="[
           'flex-1 flex flex-col items-center justify-center py-1 transition-colors',
-          isRouteActive('/admin/payments') ? 'text-red-500 font-bold' : 'hover:text-slate-200'
+          isRouteActive('/admin/reports') ? 'text-red-500 font-bold' : 'hover:text-slate-200'
         ]"
       >
-        <span class="text-lg">💳</span>
-        <span class="text-[10px] tracking-tight mt-0.5">Payments</span>
+        <span class="text-lg">📊</span>
+        <span class="text-[10px] tracking-tight mt-0.5">Reports</span>
       </RouterLink>
 
       <!-- 5. MORE (OPENS FULL RBAC DRAWER) -->

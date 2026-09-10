@@ -664,8 +664,8 @@ class SalesReturnTest extends TestCase
         $delRes = $this->deleteJson("/api/v1/pos/sales/returns/{$returnId}");
         $delRes->assertStatus(200)->assertJson(['success' => true]);
 
-        // Verify return record is deleted
-        $this->assertDatabaseMissing('returns', ['id' => $returnId]);
+        // Verify return record is soft deleted (moved to Recycle Bin)
+        $this->assertSoftDeleted('returns', ['id' => $returnId]);
 
         // Verify stock is reduced back by 5
         $stockRecord->refresh();

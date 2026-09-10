@@ -27,30 +27,57 @@
       </div>
     </div>
 
-    <!-- Categorized Navigation Menu (Independent Vertical Scrollbar) -->
-    <nav class="flex-1 px-3 py-4 overflow-y-auto space-y-3 text-xs">
+    <!-- Navigation Menu -->
+    <nav class="flex-1 px-3 py-4 overflow-y-auto space-y-2 text-xs">
+      <!-- Standalone Top-Level Items (Dashboard) -->
+      <div v-for="item in visibleStandaloneItems" :key="item.name" class="mb-1">
+        <RouterLink
+          :to="item.path"
+          @click="handleNavClick"
+          :class="[
+            'flex items-center gap-2.5 px-3 py-2.5 rounded-xl font-black uppercase text-xs tracking-wider transition-all min-h-[44px]',
+            isRouteActive(item.path)
+              ? 'bg-red-600 text-white shadow-md shadow-red-600/20'
+              : 'text-slate-400 hover:bg-slate-900 hover:text-white'
+          ]"
+        >
+          <span class="text-sm shrink-0">{{ item.icon }}</span>
+          <span class="truncate">{{ item.name }}</span>
+        </RouterLink>
+      </div>
+
+      <!-- Categorized Collapsible Accordion Groups -->
       <div v-for="group in visibleMenuGroups" :key="group.title" class="space-y-1">
-        <!-- Section Header -->
+        <!-- Section Header Button (Accordion Toggle) -->
         <button
           @click="toggleGroup(group.title)"
-          class="w-full flex items-center justify-between px-3 py-1 text-[9px] font-extrabold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors"
+          type="button"
+          :class="[
+            'w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all select-none cursor-pointer border min-h-[44px]',
+            expandedGroups[group.title]
+              ? 'bg-slate-900 text-white border-slate-700/80 shadow-inner'
+              : 'bg-transparent text-slate-400 border-transparent hover:bg-slate-900/60 hover:text-slate-200'
+          ]"
         >
-          <span>{{ group.title }}</span>
-          <span v-if="group.items.length > 1" class="text-[8px]">
-            {{ expandedGroups[group.title] ? '▼' : '▶' }}
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="text-sm shrink-0">{{ group.icon || '📌' }}</span>
+            <span class="truncate">{{ group.title }}</span>
+          </div>
+          <span class="text-xs font-bold text-slate-500 transition-transform duration-200 shrink-0 ml-1">
+            {{ expandedGroups[group.title] ? '▾' : '▸' }}
           </span>
         </button>
 
         <!-- Submenu Items -->
-        <div v-show="expandedGroups[group.title] || group.items.length === 1" class="space-y-0.5 pt-0.5">
+        <div v-show="expandedGroups[group.title]" class="space-y-1 pt-1 pl-2 border-l border-slate-800/80 ml-3">
           <RouterLink
             v-for="item in group.items"
             :key="item.name"
             :to="item.path"
             @click="handleNavClick"
             :class="[
-              'flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold transition-all',
-              route.path === item.path || (item.path !== '/admin' && route.path.startsWith(item.path + '/'))
+              'flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold transition-all min-h-[40px]',
+              isRouteActive(item.path)
                 ? 'bg-red-600 text-white shadow-md shadow-red-600/20'
                 : 'text-slate-400 hover:bg-slate-900 hover:text-white'
             ]"
@@ -82,28 +109,25 @@ import { useUiStore } from '../../stores/uiStore';
 import { useCompanyStore } from '../../stores/companyStore';
 import { useAuth } from '../../composables/useAuth';
 import { useRoute } from 'vue-router';
+import { standaloneItems, menuGroups } from '../../config/menuConfig';
+
+import { useModuleStore } from '../../stores/moduleStore';
 
 const uiStore = useUiStore();
 const companyStore = useCompanyStore();
+const moduleStore = useModuleStore();
 const { hasPermission, isSuperAdmin } = useAuth();
 const route = useRoute();
 
-const expandedGroups = reactive({
-  'DASHBOARD': true,
-  'MASTER DATA': true,
-  'SALES': true,
-  'INVENTORY': true,
-  'PURCHASES': true,
-  'PAYMENTS': true,
-  'REPORTS': true,
-  'STORE MANAGEMENT': true,
-  'ACCESS CONTROL': true,
-  'SETTINGS': true,
-  'FRONT WEBSITE': true,
-});
+const expandedGroups = reactive({});
 
 function toggleGroup(title) {
-  expandedGroups[title] = !expandedGroups[title];
+  const isCurrentlyOpen = !!expandedGroups[title];
+  // Accordion behavior: close all groups, then toggle clicked group
+  Object.keys(expandedGroups).forEach(k => {
+    expandedGroups[k] = false;
+  });
+  expandedGroups[title] = !isCurrentlyOpen;
 }
 
 function handleNavClick() {
@@ -112,140 +136,55 @@ function handleNavClick() {
   }
 }
 
-// Admin Navigation Menu Groups with FRONT WEBSITE as final main section with submenus
-const allMenuGroups = [
-  {
-    title: 'DASHBOARD',
-    items: [
-      { name: 'Dashboard', path: '/admin/dashboard', icon: '📊', permission: 'products.view' },
-    ]
-  },
-  {
-    title: 'MASTER DATA',
-    items: [
-      { name: 'Products', path: '/admin/products', icon: '👟', permission: 'products.view' },
-      { name: 'Categories', path: '/admin/categories', icon: '🏷️', permission: 'products.view' },
-      { name: 'Brands', path: '/admin/brands', icon: '🏅', permission: 'products.view' },
-      { name: 'Sizes', path: '/admin/sizes', icon: '📏', permission: 'products.view' },
-      { name: 'Colors', path: '/admin/colors', icon: '🎨', permission: 'products.view' },
-      { name: 'Customers', path: '/admin/customers', icon: '👥', permission: 'customers.view' },
-      { name: 'Suppliers', path: '/admin/suppliers', icon: '🏢', permission: 'suppliers.view' },
-    ]
-  },
-  {
-    title: 'SALES',
-    items: [
-      { name: 'New Sale / POS', path: '/admin/pos', icon: '🛒', badge: 'POS', permission: 'pos.billing' },
-      { name: 'Sales Invoices', path: '/admin/sales', icon: '🧾', permission: 'sales.view|pos.billing' },
-      { name: 'Sales Returns', path: '/admin/sales-returns', icon: '↩️', permission: 'sales_returns.view|pos.returns' },
-      { name: 'Exchanges', path: '/admin/exchanges', icon: '🔄', permission: 'exchanges.view|pos.exchanges' },
-    ]
-  },
-  {
-    title: 'INVENTORY',
-    items: [
-      { name: 'Stock Overview', path: '/admin/inventory/stock', icon: '📦', permission: 'inventory.view' },
-      { name: 'Stock Movements', path: '/admin/inventory/movements', icon: '📈', permission: 'inventory.view' },
-      { name: 'Stock Adjustments', path: '/admin/inventory/adjustments', icon: '⚙️', permission: 'inventory.adjust' },
-      { name: 'Stock Transfers', path: '/admin/inventory/transfers', icon: '🚚', permission: 'inventory.transfer' },
-      { name: 'Low Stock', path: '/admin/inventory/low-stock', icon: '⚠️', permission: 'inventory.view' },
-      { name: 'Stock Out – Damage', path: '/admin/stock-damage', icon: '🗑️', permission: 'inventory.view' },
-    ]
-  },
-  {
-    title: 'PURCHASES',
-    items: [
-      { name: 'Purchase Orders', path: '/admin/purchase-orders', icon: '📝', permission: 'procurement.view' },
-      { name: 'Goods Receive', path: '/admin/grn', icon: '📥', permission: 'procurement.receive' },
-      { name: 'Purchase Bills', path: '/admin/purchase-bills', icon: '📑', permission: 'procurement.view' },
-      { name: 'Purchase Returns', path: '/admin/purchase-returns', icon: '↩️', permission: 'procurement.view' },
-    ]
-  },
-  {
-    title: 'PAYMENTS & EXPENSES',
-    items: [
-      { name: 'Payment Collections', path: '/admin/payments/collections', icon: '💳', permission: 'pos.billing' },
-      { name: 'Refunds', path: '/admin/payments/refunds', icon: '💸', permission: 'pos.returns' },
-      { name: 'Expenses', path: '/admin/expenses', icon: '💸', permission: 'expenses.view' },
-      { name: 'Cash Drawer', path: '/admin/payments/cash-drawer', icon: '💵', permission: 'pos.sessions' },
-      { name: 'Day Closing', path: '/admin/payments/day-closing', icon: '🔒', permission: 'pos.sessions' },
-    ]
-  },
-  {
-    title: 'REPORTS',
-    items: [
-      { name: 'Sales Reports', path: '/admin/reports/sales', icon: '📊', permission: 'reports.view' },
-      { name: 'Inventory Reports', path: '/admin/reports/inventory', icon: '📦', permission: 'reports.view' },
-      { name: 'Purchase Reports', path: '/admin/reports/purchases', icon: '📝', permission: 'reports.view' },
-      { name: 'Customer Reports', path: '/admin/reports/customers', icon: '👥', permission: 'reports.view' },
-      { name: 'Payment Reports', path: '/admin/reports/payments', icon: '💳', permission: 'reports.view' },
-      { name: 'Profit & Margin', path: '/admin/reports/profit-margin', icon: '📈', permission: 'reports.view' },
-    ]
-  },
-  {
-    title: 'STORE MANAGEMENT',
-    items: [
-      { name: 'Stores', path: '/admin/stores', icon: '🏬', permission: 'stores.manage' },
-      { name: 'Store Performance', path: '/admin/stores/performance', icon: '🎯', permission: 'reports.view' },
-    ]
-  },
-  {
-    title: 'ACCESS CONTROL',
-    items: [
-      { name: 'Users', path: '/admin/users', icon: '🔑', permission: 'users.manage' },
-      { name: 'Roles & Permissions', path: '/admin/roles', icon: '🛡️', permission: 'roles.manage' },
-      { name: 'Store Access', path: '/admin/store-access', icon: '🔒', permission: 'users.manage' },
-      { name: 'Audit Log', path: '/admin/audit', icon: '📜', permission: 'audit.view' },
-    ]
-  },
-  {
-    title: 'SETTINGS',
-    items: [
-      { name: 'Company Profile', path: '/admin/settings/company', icon: '🏢', permission: 'system.settings|company.settings' },
-      { name: 'Invoice Settings', path: '/admin/settings/invoices', icon: '🧾', permission: 'system.settings|invoice.settings' },
-      { name: 'Tax Settings', path: '/admin/settings/tax', icon: '📑', permission: 'system.settings|tax.settings' },
-      { name: 'Payment Methods', path: '/admin/settings/payment-methods', icon: '💳', permission: 'system.settings|payment_methods.manage' },
-      { name: 'POS Settings', path: '/admin/settings/pos', icon: '⚙️', permission: 'system.settings|pos.settings' },
-      { name: 'Stock Settings', path: '/admin/settings/stock', icon: '📦', permission: 'system.settings|stock.settings' },
-      { name: 'Printer Settings', path: '/admin/settings/printers', icon: '🖨️', permission: 'system.settings|printer.settings' },
-      { name: 'Number Series', path: '/admin/settings/number-series', icon: '🔢', permission: 'system.settings|number_series.manage' },
-      { name: 'General Settings', path: '/admin/settings/general', icon: '🔧', permission: 'system.settings|general.settings' },
-      { name: 'Module Settings', path: '/admin/settings/modules', icon: '🧩', permission: 'system.settings|module.settings' },
-      { name: 'Database Management', path: '/admin/settings/database', icon: '🗄️', permission: 'database.manage|system.settings' },
-      { name: 'Recycle Bin', path: '/admin/settings/recycle-bin', icon: '🗑️', permission: 'recycle_bin.manage|system.settings' },
-    ]
-  },
-  {
-    title: 'FRONT WEBSITE',
-    items: [
-      { name: 'Home Page', path: '/admin/front-website/home', icon: '🏠', permission: 'system.settings' },
-      { name: 'Header & Footer', path: '/admin/front-website/header-footer', icon: '🎨', permission: 'system.settings' },
-      { name: 'Pages', path: '/admin/front-website/pages', icon: '📄', permission: 'system.settings' },
-      { name: 'Banners', path: '/admin/front-website/banners', icon: '🖼️', permission: 'system.settings' },
-      { name: 'Shop Categories', path: '/admin/front-website/categories', icon: '🏷️', permission: 'system.settings' },
-      { name: 'Brands / Our Partners', path: '/admin/front-website/brands', icon: '🏅', permission: 'system.settings' },
-      { name: 'Contact & Business Info', path: '/admin/front-website/contact-info', icon: '📞', permission: 'system.settings' },
-    ]
-  },
-];
+function isRouteActive(path) {
+  if (path === '/admin/dashboard') {
+    return route.path === '/admin/dashboard' || route.path === '/admin' || route.path === '/admin/';
+  }
+  return route.path === path || (path !== '/admin' && route.path.startsWith(path + '/'));
+}
+
+const visibleStandaloneItems = computed(() => {
+  return standaloneItems.filter(item => isSuperAdmin.value || !item.permission || hasPermission(item.permission));
+});
 
 const visibleMenuGroups = computed(() => {
-  if (isSuperAdmin.value) return allMenuGroups;
-
-  return allMenuGroups
+  return menuGroups
     .map(g => ({
       ...g,
-      items: g.items.filter(item => !item.permission || hasPermission(item.permission))
+      items: g.items.filter(item => {
+        const hasPerm = isSuperAdmin.value || !item.permission || hasPermission(item.permission);
+        const hasModule = !item.moduleKey || moduleStore[item.moduleKey] === true;
+        return hasPerm && hasModule;
+      })
     }))
     .filter(g => g.items.length > 0);
 });
 
-// Automatically expand parent group when active route changes
-watch(() => route.path, (newPath) => {
-  allMenuGroups.forEach(g => {
-    if (g.items.some(item => item.path === newPath)) {
-      expandedGroups[g.title] = true;
+// Auto-expand group containing current route
+watch(
+  () => route.path,
+  (newPath) => {
+    let matchedTitle = null;
+    visibleMenuGroups.value.forEach(g => {
+      if (g.items.some(item => isRouteActive(item.path))) {
+        matchedTitle = g.title;
+      }
+    });
+
+    Object.keys(expandedGroups).forEach(k => {
+      expandedGroups[k] = false;
+    });
+
+    if (matchedTitle) {
+      expandedGroups[matchedTitle] = true;
     }
-  });
-}, { immediate: true });
+  },
+  { immediate: true }
+);
 </script>
+
+<style scoped>
+.safe-pb {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2rem);
+}
+</style>

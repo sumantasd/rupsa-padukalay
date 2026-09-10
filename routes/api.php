@@ -96,11 +96,13 @@ Route::prefix('v1')->group(function () {
         // Inventory Read-Only API
         Route::middleware('permission:products.view')->get('inventory/overview', [InventoryStockController::class, 'overview']);
         Route::middleware('permission:products.view|procurement.view')->get('products/size-matrix-search', [ProductController::class, 'sizeMatrixSearch']);
+        Route::middleware('permission:products.view|pos.billing|procurement.view')->get('products/autocomplete', [ProductController::class, 'autocomplete']);
         Route::middleware('permission:products.view')->get('inventory', [InventoryStockController::class, 'index']);
         Route::middleware('permission:products.view')->get('inventory/low-stock', [InventoryStockController::class, 'lowStock']);
         Route::middleware('permission:products.view')->get('inventory/reconciliation/{sku}', [InventoryStockController::class, 'reconciliation']);
         Route::middleware('permission:products.view')->get('inventory/stocks', [InventoryStockController::class, 'index']);
         Route::middleware('permission:products.view')->get('inventory/stocks/{id}', [InventoryStockController::class, 'show']);
+        Route::middleware('permission:products.edit|inventory.adjust|inventory.view')->post('inventory/stock-add', [InventoryStockController::class, 'bulkAdd']);
 
         // Low Stock Notifications API
         Route::middleware('permission:products.view')->get('notifications/low-stock', [LowStockNotificationController::class, 'index']);

@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\GoodsReceiveItem;
+use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Product;
 use App\Models\ProductImage;
@@ -16,6 +17,7 @@ use App\Models\PurchaseBillItem;
 use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseReturnItem;
 use App\Models\ReturnItem;
+use App\Models\ReturnSale;
 use App\Models\StockAdjustmentItem;
 use App\Models\StockDamageItem;
 use App\Models\StockMovement;
@@ -167,6 +169,109 @@ class RecycleBinController extends Controller
                 });
                 break;
 
+            case 'sales':
+                $query = Invoice::onlyTrashed()->with(['customer', 'store', 'creator', 'items']);
+                if (! empty($search)) {
+                    $query->where(function ($q) use ($search) {
+                        $q->where('invoice_number', 'LIKE', "%{$search}%")
+                            ->orWhere('client_trans_uuid', 'LIKE', "%{$search}%")
+                            ->orWhereHas('customer', function ($cq) use ($search) {
+                                $cq->where('name', 'LIKE', "%{$search}%")
+                                    ->orWhere('mobile_number', 'LIKE', "%{$search}%");
+                            });
+                    });
+                }
+                $paginated = $query->orderBy('deleted_at', 'desc')->paginate($perPage);
+                $items = collect($paginated->items())->map(function ($inv) {
+                    $itemCount = $inv->items->sum('quantity');
+                    return [
+                        'id' => $inv->id,
+                        'type' => 'sales',
+                        'name' => "Invoice #{$inv->invoice_number}",
+                        'code_or_sku' => $inv->invoice_number,
+                        'category_name' => 'Sales Invoice',
+                        'brand_name' => $inv->store?->name ?? 'Main Store',
+                        'deleted_at' => $inv->deleted_at?->toIso8601String(),
+                        'current_stock' => null,
+                        'details' => "Customer: " . ($inv->customer?->name ?? 'Walk-in Customer') . " | Items: {$itemCount} | Total: ₹" . number_format($inv->grand_total, 2) . " | Date: " . ($inv->created_at ? $inv->created_at->format('Y-m-d H:i') : 'N/A'),
+                    ];
+                });
+                break;
+
+            case 'sales_returns':
+            case 'sale_returns':
+            case 'returns':
+                $query = ReturnSale::onlyTrashed()
+                    ->where(function ($q) {
+                        $q->whereNull('refund_mode')
+                            ->orWhere('refund_mode', '!=', 'exchange_offset');
+                    })
+                    ->where(function ($q) {
+                        $q->whereNull('reason')
+                            ->orWhere('reason', 'NOT LIKE', '%Exchange%');
+                    })
+                    ->with(['originalInvoice', 'customer', 'store', 'items']);
+
+                if (! empty($search)) {
+                    $query->where(function ($q) use ($search) {
+                        $q->where('return_number', 'LIKE', "%{$search}%")
+                            ->orWhereHas('originalInvoice', function ($iq) use ($search) {
+                                $iq->where('invoice_number', 'LIKE', "%{$search}%");
+                            });
+                    });
+                }
+                $paginated = $query->orderBy('deleted_at', 'desc')->paginate($perPage);
+                $items = collect($paginated->items())->map(function ($ret) {
+                    $itemCount = $ret->items->sum('quantity');
+                    return [
+                        'id' => $ret->id,
+                        'type' => 'sales_returns',
+                        'name' => "Return #{$ret->return_number}",
+                        'code_or_sku' => $ret->return_number,
+                        'category_name' => 'Sale Return',
+                        'brand_name' => $ret->store?->name ?? 'Main Store',
+                        'deleted_at' => $ret->deleted_at?->toIso8601String(),
+                        'current_stock' => null,
+                        'details' => "Invoice: " . ($ret->originalInvoice?->invoice_number ?? 'N/A') . " | Refund: ₹" . number_format($ret->total_refund_amount, 2) . " | Returned Items: {$itemCount}",
+                    ];
+                });
+                break;
+
+            case 'sales_exchanges':
+            case 'sale_exchanges':
+            case 'exchanges':
+                $query = ReturnSale::onlyTrashed()
+                    ->where(function ($q) {
+                        $q->where('refund_mode', 'exchange_offset')
+                            ->orWhere('reason', 'LIKE', '%Exchange%')
+                            ->orWhere('price_difference', '!=', 0);
+                    })
+                    ->with(['originalInvoice', 'customer', 'store', 'items']);
+
+                if (! empty($search)) {
+                    $query->where(function ($q) use ($search) {
+                        $q->where('return_number', 'LIKE', "%{$search}%")
+                            ->orWhereHas('originalInvoice', function ($iq) use ($search) {
+                                $iq->where('invoice_number', 'LIKE', "%{$search}%");
+                            });
+                    });
+                }
+                $paginated = $query->orderBy('deleted_at', 'desc')->paginate($perPage);
+                $items = collect($paginated->items())->map(function ($exc) {
+                    return [
+                        'id' => $exc->id,
+                        'type' => 'sales_exchanges',
+                        'name' => "Exchange #{$exc->return_number}",
+                        'code_or_sku' => $exc->return_number,
+                        'category_name' => 'Sale Exchange',
+                        'brand_name' => $exc->store?->name ?? 'Main Store',
+                        'deleted_at' => $exc->deleted_at?->toIso8601String(),
+                        'current_stock' => null,
+                        'details' => "Original Invoice: " . ($exc->originalInvoice?->invoice_number ?? 'N/A') . " | Price Diff: ₹" . number_format($exc->price_difference, 2) . " | Paid: ₹" . number_format($exc->amount_paid, 2),
+                    ];
+                });
+                break;
+
             default:
                 return $this->errorResponse('Unsupported recycle bin entity type.', 422);
         }
@@ -228,6 +333,33 @@ class RecycleBinController extends Controller
                 $item->save();
                 $item->restore();
                 $name = $item->name;
+                break;
+
+            case 'sales':
+                $item = Invoice::onlyTrashed()->find($id);
+                if (! $item) return $this->errorResponse('Trashed sales invoice not found.', 404);
+                $item->status = \App\Enums\InvoiceStatus::COMPLETED;
+                $item->save();
+                $item->restore();
+                $name = "Invoice #{$item->invoice_number}";
+                break;
+
+            case 'sales_returns':
+            case 'sale_returns':
+            case 'returns':
+                $item = ReturnSale::onlyTrashed()->find($id);
+                if (! $item) return $this->errorResponse('Trashed sale return not found.', 404);
+                $item->restore();
+                $name = "Return #{$item->return_number}";
+                break;
+
+            case 'sales_exchanges':
+            case 'sale_exchanges':
+            case 'exchanges':
+                $item = ReturnSale::onlyTrashed()->find($id);
+                if (! $item) return $this->errorResponse('Trashed exchange record not found.', 404);
+                $item->restore();
+                $name = "Exchange #{$item->return_number}";
                 break;
 
             default:
@@ -339,6 +471,34 @@ class RecycleBinController extends Controller
 
                 $name = $brand->name;
                 $brand->forceDelete();
+                break;
+
+            case 'sales':
+                $inv = Invoice::onlyTrashed()->find($id);
+                if (! $inv) return $this->errorResponse('Trashed sales invoice not found.', 404);
+
+                $name = "Invoice #{$inv->invoice_number}";
+                DB::transaction(function () use ($inv) {
+                    InvoiceItem::where('invoice_id', $inv->id)->delete();
+                    \App\Models\InvoicePayment::where('invoice_id', $inv->id)->delete();
+                    $inv->forceDelete();
+                });
+                break;
+
+            case 'sales_returns':
+            case 'sale_returns':
+            case 'returns':
+            case 'sales_exchanges':
+            case 'sale_exchanges':
+            case 'exchanges':
+                $ret = ReturnSale::onlyTrashed()->find($id);
+                if (! $ret) return $this->errorResponse('Trashed transaction not found.', 404);
+
+                $name = "Transaction #{$ret->return_number}";
+                DB::transaction(function () use ($ret) {
+                    ReturnItem::where('return_id', $ret->id)->delete();
+                    $ret->forceDelete();
+                });
                 break;
 
             default:

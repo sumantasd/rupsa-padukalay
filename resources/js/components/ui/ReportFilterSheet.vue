@@ -124,6 +124,7 @@ const datePresets = [
   { id: 'yesterday', label: 'Yesterday' },
   { id: 'this_week', label: 'This Week' },
   { id: 'this_month', label: 'This Month' },
+  { id: 'previous_month', label: 'Previous Month' },
   { id: 'this_year', label: 'This Year' },
   { id: 'custom', label: 'Custom' },
 ];
@@ -159,6 +160,11 @@ function selectPreset(presetId) {
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     localFilters.date_from = formatDate(firstDay);
     localFilters.date_to = formatDate(now);
+  } else if (presetId === 'previous_month') {
+    const firstDayPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDayPrev = new Date(now.getFullYear(), now.getMonth(), 0);
+    localFilters.date_from = formatDate(firstDayPrev);
+    localFilters.date_to = formatDate(lastDayPrev);
   } else if (presetId === 'this_year') {
     const firstDayYear = new Date(now.getFullYear(), 0, 1);
     localFilters.date_from = formatDate(firstDayYear);

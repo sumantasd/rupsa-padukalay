@@ -494,6 +494,8 @@ class ReportService
                 DB::raw('SUM(invoice_items.subtotal) as net_sales'),
                 DB::raw('SUM(invoice_items.quantity * invoice_items.cost_price) as cogs')
             )
+            ->whereNull('invoices.deleted_at')
+            ->where('invoices.status', '!=', 'cancelled')
             ->groupBy('invoice_items.sku_snapshot', 'invoice_items.article_number_snapshot', 'invoice_items.product_name_snapshot', 'invoice_items.color_name_snapshot', 'invoice_items.size_number_snapshot', 'invoice_items.hsn_code_snapshot');
 
         if (! $user->roles()->where('name', 'Super Admin')->exists()) {
@@ -504,7 +506,6 @@ class ReportService
         if (! empty($filters['store_id'])) {
             $query->where('invoices.store_id', (int) $filters['store_id']);
         }
-        $query->where('invoices.status', '!=', 'cancelled');
         $this->applyDateBounds($query, $filters, 'invoices.created_at');
 
         if (! empty($filters['search'])) {
@@ -516,7 +517,7 @@ class ReportService
             });
         }
 
-        $sortBy = $filters['sort_by'] ?? 'highest_sales';
+        $sortBy = $filters['sort_by'] ?? 'default';
         if ($sortBy === 'highest_qty') {
             $query->orderBy(DB::raw('SUM(invoice_items.quantity)'), 'desc');
         } elseif ($sortBy === 'highest_profit') {
@@ -528,10 +529,40 @@ class ReportService
         } elseif ($sortBy === 'lowest_margin') {
             $query->orderBy(DB::raw('(SUM(invoice_items.subtotal) - SUM(invoice_items.quantity * invoice_items.cost_price)) / NULLIF(SUM(invoice_items.subtotal), 0)'), 'asc');
         } else {
-            $query->orderBy(DB::raw('SUM(invoice_items.subtotal)'), 'desc');
+            $query->orderBy('invoice_items.article_number_snapshot', 'asc')
+                  ->orderBy('invoice_items.product_name_snapshot', 'asc')
+                  ->orderByRaw('CAST(invoice_items.size_number_snapshot AS DECIMAL(8,2)) ASC')
+                  ->orderBy('invoice_items.size_number_snapshot', 'asc');
         }
 
         $rows = $query->get();
+
+        // Query Sale Returns for exact deduction
+        $returnQuery = DB::table('return_items')
+            ->join('returns', 'return_items.return_id', '=', 'returns.id')
+            ->join('invoice_items', 'return_items.invoice_item_id', '=', 'invoice_items.id')
+            ->select(
+                'invoice_items.sku_snapshot as sku',
+                'invoice_items.article_number_snapshot as article_number',
+                'invoice_items.product_name_snapshot as product_name',
+                'invoice_items.size_number_snapshot as size',
+                DB::raw('SUM(return_items.quantity) as return_qty'),
+                DB::raw('SUM(return_items.subtotal) as return_amount')
+            )
+            ->whereNull('returns.deleted_at')
+            ->groupBy('invoice_items.sku_snapshot', 'invoice_items.article_number_snapshot', 'invoice_items.product_name_snapshot', 'invoice_items.size_number_snapshot');
+
+        if (! $user->roles()->where('name', 'Super Admin')->exists()) {
+            $userStoreIds = $user->stores()->pluck('stores.id')->toArray();
+            $returnQuery->whereIn('returns.store_id', $userStoreIds);
+        }
+
+        if (! empty($filters['store_id'])) {
+            $returnQuery->where('returns.store_id', (int) $filters['store_id']);
+        }
+        $this->applyDateBounds($returnQuery, $filters, 'returns.created_at');
+
+        $returnsMap = $returnQuery->get()->keyBy(fn ($r) => "{$r->article_number}|{$r->product_name}|{$r->size}|{$r->sku}");
 
         $items = [];
         $totQty = 0;
@@ -542,16 +573,28 @@ class ReportService
         $totProfit = 0.0;
 
         foreach ($rows as $row) {
-            $qty = (int) $row->qty_sold;
+            $key = "{$row->article_number}|{$row->product_name}|{$row->size}|{$row->sku}";
+            $retInfo = $returnsMap->get($key);
+            $retQty = $retInfo ? (int) $retInfo->return_qty : 0;
+            $retAmt = $retInfo ? (float) $retInfo->return_amount : 0.00;
+
+            $grossQty = (int) $row->qty_sold;
+            $netQty = max(0, $grossQty - $retQty);
+
+            // Skip items with zero net sales after return
+            if ($netQty <= 0 && $grossQty > 0 && $retQty >= $grossQty) {
+                continue;
+            }
+
             $gross = (float) $row->gross_sales;
             $disc = (float) $row->discount;
-            $net = (float) $row->net_sales;
-            $cg = (float) $row->cogs;
+            $net = max(0.0, round(((float) $row->net_sales) - $retAmt, 2));
+            $cg = round($netQty * (float) $row->cogs / max(1, $grossQty), 2);
             $profit = round($net - $cg, 2);
             $margin = $net > 0 ? round(($profit / $net) * 100.0, 2) : 0.00;
-            $avgPrice = $qty > 0 ? round($net / $qty, 2) : 0.00;
+            $avgPrice = $netQty > 0 ? round($net / $netQty, 2) : 0.00;
 
-            $totQty += $qty;
+            $totQty += $netQty;
             $totGross += $gross;
             $totDiscount += $disc;
             $totNet += $net;
@@ -565,11 +608,12 @@ class ReportService
                 'color' => $row->color ?? 'N/A',
                 'size' => $row->size ?? 'N/A',
                 'hsn_code' => $row->hsn_code ?? 'N/A',
-                'qty_sold' => $qty,
+                'qty_sold' => $netQty,
+                'gross_qty_sold' => $grossQty,
                 'gross_sales' => round($gross, 2),
                 'discount' => round($disc, 2),
-                'return_qty' => 0,
-                'return_amount' => 0.00,
+                'return_qty' => $retQty,
+                'return_amount' => round($retAmt, 2),
                 'net_sales' => round($net, 2),
                 'avg_selling_price' => $avgPrice,
                 'cogs' => round($cg, 2),

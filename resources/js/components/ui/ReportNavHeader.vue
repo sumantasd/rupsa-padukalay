@@ -1,28 +1,30 @@
 <template>
   <div class="space-y-3 mb-5 font-sans">
     <!-- Top Bar: Mobile App Header & Module Selector -->
-    <div class="bg-slate-950 text-white rounded-2xl p-4 border border-slate-800 shadow-xl flex items-center justify-between gap-3">
+    <div class="bg-slate-950 text-white rounded-2xl p-4 border border-slate-800 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
       <!-- Title & Dropdown Switcher Button -->
       <div class="relative">
         <button
           @click="isDropdownOpen = !isDropdownOpen"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 active:scale-98 transition-all cursor-pointer"
+          class="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 active:scale-98 transition-all cursor-pointer"
         >
-          <div class="h-7 w-7 rounded-lg bg-red-600 flex items-center justify-center text-white font-black text-xs shadow-md shadow-red-600/30">
-            {{ currentReportIcon }}
-          </div>
-          <div class="text-left">
-            <div class="flex items-center gap-1">
-              <span class="font-black text-xs tracking-wider uppercase text-white">REPORTS</span>
-              <span class="text-[10px] text-red-500 font-bold transition-transform" :class="{ 'rotate-180': isDropdownOpen }">▼</span>
+          <div class="flex items-center gap-2">
+            <div class="h-7 w-7 rounded-lg bg-red-600 flex items-center justify-center text-white font-black text-xs shadow-md shadow-red-600/30">
+              {{ currentReportIcon }}
             </div>
-            <p class="text-[10px] font-extrabold text-slate-400 truncate max-w-[150px] sm:max-w-xs">
-              {{ currentReportTitle }}
-            </p>
+            <div class="text-left">
+              <div class="flex items-center gap-1">
+                <span class="font-black text-xs tracking-wider uppercase text-white">REPORTS</span>
+                <span class="text-[10px] text-red-500 font-bold transition-transform" :class="{ 'rotate-180': isDropdownOpen }">▼</span>
+              </div>
+              <p class="text-[10px] font-extrabold text-slate-400 truncate max-w-[180px] sm:max-w-xs">
+                {{ currentReportTitle }}
+              </p>
+            </div>
           </div>
         </button>
 
-        <!-- Dropdown Menu for Reports (Matching Mobile App-Style Reference) -->
+        <!-- Dropdown Menu for Reports -->
         <Teleport to="body">
           <div
             v-if="isDropdownOpen"
@@ -63,34 +65,34 @@
       </div>
 
       <!-- Action Buttons: View PDF, Download PDF, Open Bottom Sheet Filter & Refresh -->
-      <div class="flex items-center gap-1.5 sm:gap-2">
+      <div class="flex items-center justify-end gap-1.5 sm:gap-2 flex-wrap">
         <button
           v-if="showExportBtn"
           @click="$emit('view-pdf')"
-          class="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 active:scale-95 text-slate-200 hover:text-white font-extrabold text-[11px] transition-all cursor-pointer min-h-[40px]"
+          class="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 active:scale-95 text-slate-200 hover:text-white font-extrabold text-[11px] transition-all cursor-pointer min-h-[38px]"
           title="Open PDF Document in Browser"
         >
           <span>📄</span>
-          <span class="hidden xs:inline uppercase tracking-wider text-[9px]">View PDF</span>
+          <span class="uppercase tracking-wider text-[10px]">View PDF</span>
         </button>
 
         <button
           v-if="showExportBtn"
           @click="$emit('download-pdf')"
-          class="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-[11px] shadow-md shadow-red-600/30 transition-all cursor-pointer min-h-[40px]"
+          class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-[11px] shadow-md shadow-red-600/30 transition-all cursor-pointer min-h-[38px]"
           title="Download PDF File"
         >
           <span>⬇️</span>
-          <span class="hidden xs:inline uppercase tracking-wider text-[9px]">Download PDF</span>
+          <span class="uppercase tracking-wider text-[10px]">EXPORT PDF</span>
         </button>
 
         <button
           v-if="showFilterBtn"
           @click="$emit('open-filter')"
-          class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs shadow-md shadow-red-600/30 transition-all cursor-pointer min-h-[40px]"
+          class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs shadow-md shadow-red-600/30 transition-all cursor-pointer min-h-[38px]"
         >
           <span>🔍</span>
-          <span class="hidden xs:inline uppercase tracking-wider text-[10px]">Filters</span>
+          <span class="uppercase tracking-wider text-[10px]">Filters</span>
           <span v-if="activeFilterCount > 0" class="ml-1 px-1.5 py-0.5 rounded-full bg-white text-red-700 text-[9px] font-black">
             {{ activeFilterCount }}
           </span>
@@ -98,7 +100,7 @@
 
         <button
           @click="$emit('refresh')"
-          class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-sm cursor-pointer active:scale-95 transition-all"
+          class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-sm cursor-pointer active:scale-95 transition-all"
           title="Refresh Data"
         >
           🔄
@@ -132,6 +134,7 @@ import { useRoute } from 'vue-router';
 
 const props = defineProps({
   showFilterBtn: { type: Boolean, default: true },
+  showExportBtn: { type: Boolean, default: true },
   activeFilterCount: { type: Number, default: 0 },
 });
 

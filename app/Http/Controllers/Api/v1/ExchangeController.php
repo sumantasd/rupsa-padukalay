@@ -475,7 +475,6 @@ class ExchangeController extends Controller
 
         try {
             DB::transaction(function () use ($exchange) {
-                ReturnItem::where('return_id', $exchange->id)->delete();
                 StockMovement::where('reference_type', ReturnSale::class)
                     ->where('reference_id', $exchange->id)
                     ->delete();

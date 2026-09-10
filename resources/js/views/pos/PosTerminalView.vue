@@ -123,29 +123,119 @@
               <div class="flex items-center justify-between min-w-0">
                 <label class="text-[11px] sm:text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5 truncate">
                   <span class="h-4.5 w-4.5 rounded-full bg-red-600 text-white text-[9px] flex items-center justify-center font-mono shrink-0">1</span>
-                  <span class="truncate">ARTICLE NUMBER / CODE *</span>
+                  <span class="truncate">PRODUCT SEARCH / BARCODE *</span>
                 </label>
-                <span class="text-[10px] text-slate-400 font-medium hidden sm:inline">Scan or Type Code</span>
+                <span class="text-[10px] text-slate-400 font-medium hidden sm:inline">Type Name, SKU, Barcode, Brand...</span>
               </div>
 
               <div class="flex gap-1.5 w-full max-w-full">
-                <div class="relative flex-1 min-w-0">
-                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                <div ref="searchContainerRef" class="relative flex-1 min-w-0">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs z-10 pointer-events-none">
+                    <span v-if="isSearchingSuggestions" class="inline-block animate-spin text-red-600">⏳</span>
+                    <span v-else>🔍</span>
+                  </span>
                   <input
                     ref="articleInputRef"
                     type="text"
                     v-model="articleQuery"
-                    @keyup.enter="handleSearchArticle"
-                    placeholder="Article Code (e.g. RP-805)..."
-                    class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-slate-900 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white transition-all uppercase truncate"
+                    @input="onSearchInput"
+                    @keydown.down.prevent="onKeyDown"
+                    @keydown.up.prevent="onKeyUp"
+                    @keydown.enter.prevent="onKeyEnter"
+                    @keydown.esc.prevent="onKeyEsc"
+                    @focus="onInputFocus"
+                    placeholder="Search Name, SKU, Article Code, Barcode..."
+                    class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-8 py-2 text-xs sm:text-sm text-slate-900 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white transition-all uppercase truncate"
                   />
+                  <button
+                    v-if="articleQuery"
+                    @click="clearSearch"
+                    type="button"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 text-xs z-10"
+                  >
+                    ✕
+                  </button>
+
+                  <!-- LIVE SEARCH SUGGESTIONS DROPDOWN -->
+                  <div
+                    v-if="showDropdown"
+                    class="absolute z-50 top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden max-h-80 sm:max-h-96 flex flex-col text-xs"
+                  >
+                    <div v-if="isSearchingSuggestions && searchSuggestions.length === 0" class="p-4 text-center text-slate-500 font-medium flex items-center justify-center gap-2">
+                      <span class="animate-spin text-red-600">⏳</span>
+                      <span>Searching catalogue...</span>
+                    </div>
+
+                    <div v-else-if="!isSearchingSuggestions && searchSuggestions.length === 0" class="p-4 text-center text-slate-400 font-medium">
+                      <span>🚫 No matching products found for "{{ articleQuery }}"</span>
+                    </div>
+
+                    <div v-else class="overflow-y-auto divide-y divide-slate-100 flex-1">
+                      <div
+                        v-for="(item, idx) in searchSuggestions"
+                        :key="item.id || idx"
+                        :ref="el => { if (el) suggestionRefs[idx] = el }"
+                        @click="selectSuggestion(item)"
+                        @mouseenter="highlightedIndex = idx"
+                        :class="[
+                          'p-3 flex items-center justify-between cursor-pointer transition-all gap-2.5 select-none touch-manipulation',
+                          highlightedIndex === idx ? 'bg-red-50/90 border-l-4 border-red-600 pl-2.5 ring-1 ring-red-200' : 'hover:bg-slate-50'
+                        ]"
+                      >
+                        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div class="h-10 w-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden text-lg">
+                            <img v-if="item.primary_image_url" :src="item.primary_image_url" :alt="item.product_name" class="w-full h-full object-cover" />
+                            <span v-else>👞</span>
+                          </div>
+
+                          <div class="min-w-0 flex-1 space-y-0.5">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                              <span class="font-black text-slate-900 text-xs truncate">{{ item.product_name }}</span>
+                              <span class="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-mono font-bold text-[9px] uppercase shrink-0">
+                                {{ item.article_code }}
+                              </span>
+                            </div>
+
+                            <div class="text-[10px] text-slate-500 font-medium flex items-center gap-2 truncate">
+                              <span>Brand: <strong class="text-slate-700">{{ item.brand_name }}</strong></span>
+                              <span>•</span>
+                              <span>Available Sizes: <strong class="text-red-700 font-mono">{{ item.available_sizes_summary || item.size_name || 'Matrix' }}</strong></span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="text-right shrink-0 flex flex-col items-end gap-1">
+                          <div class="flex items-center gap-1">
+                            <span
+                              :class="[
+                                'px-1.5 py-0.5 rounded-md font-bold text-[9px] whitespace-nowrap',
+                                (item.total_stock ?? item.stock ?? 0) > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200 font-black'
+                              ]"
+                            >
+                              {{ (item.total_stock ?? item.stock ?? 0) > 0 ? `${item.total_stock ?? item.stock} Stock` : 'Out of Stock' }}
+                            </span>
+                          </div>
+
+                          <div class="flex items-baseline gap-1">
+                            <span v-if="item.mrp && item.mrp > item.selling_price" class="text-[9px] text-slate-400 line-through font-mono">
+                              ₹{{ Number(item.mrp).toLocaleString('en-IN') }}
+                            </span>
+                            <span class="font-black text-slate-900 text-xs font-mono">
+                              ₹{{ Number(item.selling_price).toLocaleString('en-IN') }}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
                 <button
                   @click="handleSearchArticle"
-                  :disabled="searching"
+                  :disabled="searching || isSearchingSuggestions"
                   class="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0 whitespace-nowrap"
                 >
-                  {{ searching ? '...' : 'Search' }}
+                  {{ searching || isSearchingSuggestions ? '...' : 'Search' }}
                 </button>
               </div>
 
@@ -276,7 +366,7 @@
             </div>
 
             <!-- COMPACT EMPTY PRODUCT SEARCH PLACEHOLDER -->
-            <div v-else-if="!searching" class="p-5 sm:p-8 bg-white rounded-2xl border border-slate-200/90 text-center space-y-1.5 shadow-2xs min-w-0 max-w-full">
+            <div v-else-if="!searching && cart.length === 0" class="p-5 sm:p-8 bg-white rounded-2xl border border-slate-200/90 text-center space-y-1.5 shadow-2xs min-w-0 max-w-full">
               <div class="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-xl">
                 bb
               </div>
@@ -285,6 +375,68 @@
                 Type or scan an article code (e.g. <strong>RP-805</strong>) above to inspect sizes & add items to bill.
               </p>
             </div>
+
+            <!-- MOBILE SELECTED PRODUCTS / CART CARD (Visible on Mobile/Tablet when cart has items) -->
+            <div v-if="cart.length > 0" class="lg:hidden bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3 min-w-0 max-w-full">
+              <div class="flex items-center justify-between min-w-0 border-b border-slate-100 pb-2">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="text-base">🛒</span>
+                  <h3 class="font-black text-xs text-slate-900 uppercase tracking-wider truncate">SELECTED PRODUCTS</h3>
+                </div>
+                <span class="px-2 py-0.5 rounded-full bg-red-50 text-red-700 font-mono font-black text-[10px] shrink-0 border border-red-200">
+                  {{ cart.length }} ITEM(S)
+                </span>
+              </div>
+
+              <!-- SCROLLABLE CART ITEMS LIST -->
+              <div class="max-h-60 sm:max-h-72 overflow-y-auto space-y-2 pr-0.5">
+                <div
+                  v-for="(item, idx) in cart"
+                  :key="idx"
+                  class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs space-x-2 min-w-0"
+                >
+                  <div class="space-y-0.5 flex-1 min-w-0">
+                    <div class="flex items-center gap-1 min-w-0">
+                      <span class="font-black text-slate-900 truncate">{{ item.product_name }}</span>
+                      <span v-if="item.is_overridden" class="px-1 py-0.2 bg-amber-100 text-amber-800 text-[8px] font-bold shrink-0 rounded">
+                        ⚡ Override
+                      </span>
+                    </div>
+                    <div class="text-[9px] text-slate-500 font-mono truncate">
+                      ART: <strong>{{ item.article_code }}</strong> | SIZE: <strong class="text-red-700">{{ item.size_name }}</strong>
+                    </div>
+                    <div class="text-[10px] font-bold text-slate-700">
+                      <span v-if="item.is_overridden" class="line-through text-slate-400 text-[9px] mr-1">₹{{ Number(item.default_price).toLocaleString('en-IN') }}</span>
+                      <span>₹{{ Number(item.unit_price).toLocaleString('en-IN') }} / unit</span>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-2 shrink-0">
+                    <div class="flex items-center border border-slate-300 rounded-lg bg-white overflow-hidden shadow-2xs">
+                      <button @click="updateCartQty(idx, -1)" class="px-2 py-1 font-black text-slate-600 hover:bg-slate-100">-</button>
+                      <span class="px-2 py-1 font-black text-xs font-mono text-slate-900">{{ item.quantity }}</span>
+                      <button @click="updateCartQty(idx, 1)" class="px-2 py-1 font-black text-slate-600 hover:bg-slate-100">+</button>
+                    </div>
+
+                    <div class="w-14 text-right font-black text-slate-900 font-mono text-xs truncate">
+                      ₹{{ Number(item.line_total).toLocaleString('en-IN') }}
+                    </div>
+
+                    <button @click="removeCartItem(idx)" class="text-slate-400 hover:text-red-600 p-1 text-xs">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- CART TOTAL SUMMARY -->
+              <div class="flex items-center justify-between pt-2 border-t border-slate-200">
+                <span class="font-black text-slate-700 text-xs uppercase">CURRENT TOTAL</span>
+                <span class="text-base sm:text-lg font-black text-red-600 font-mono">
+                  ₹{{ Number(cartGrandTotal).toLocaleString('en-IN') }}
+                </span>
+              </div>
+            </div>
           </div>
 
           <!-- MOBILE STEP 1 NEXT ACTION BUTTON -->
@@ -292,9 +444,10 @@
             <button
               @click="mobileStep = 2"
               :disabled="cart.length === 0"
-              class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs rounded-xl shadow-md uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-40"
+              class="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm rounded-xl shadow-md uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-40 transition-all"
             >
-              <span>NEXT: CUSTOMER & CHECKOUT →</span>
+              <span>PROCEED TO CHECKOUT</span>
+              <span v-if="cart.length > 0" class="font-mono text-red-400"> (₹{{ Number(cartGrandTotal).toLocaleString('en-IN') }}) →</span>
             </button>
           </div>
         </div>
@@ -445,25 +598,6 @@
               </div>
             </div>
 
-            <!-- CASH CHANGE CALCULATOR -->
-            <div v-if="paymentMethod === 'cash'" class="p-2 bg-red-50/60 border border-red-200 rounded-xl space-y-1 text-xs">
-              <div class="flex items-center justify-between">
-                <label class="font-bold text-slate-800 text-[10px]">Received (₹):</label>
-                <input
-                  type="number"
-                  v-model.number="cashReceived"
-                  placeholder="e.g. 2000"
-                  class="w-24 bg-white border border-slate-300 rounded-lg px-2 py-0.5 text-right font-mono font-black text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-600"
-                />
-              </div>
-              <div class="flex items-center justify-between font-bold text-slate-900 pt-0.5 border-t border-red-200/80 text-[10px]">
-                <span>Change:</span>
-                <span class="font-mono font-black" :class="cashChange < 0 ? 'text-red-600' : 'text-emerald-700'">
-                  ₹{{ Number(Math.max(0, cashChange)).toLocaleString('en-IN') }}
-                </span>
-              </div>
-            </div>
-
             <!-- STICKY ACTION BUTTON (DESKTOP & MOBILE TOUCH FRIENDLY) -->
             <div class="pt-1">
               <div class="flex items-center gap-1.5">
@@ -477,7 +611,7 @@
 
                 <button
                   @click="submitSale"
-                  :disabled="cart.length === 0 || submitting || (paymentMethod === 'cash' && cashReceived < cartGrandTotal)"
+                  :disabled="cart.length === 0 || submitting"
                   class="flex-1 py-3 sm:py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm tracking-wider uppercase shadow-md shadow-emerald-600/30 transition-all flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed min-w-0"
                 >
                   <span v-if="submitting">Processing...</span>
@@ -652,6 +786,14 @@ const openingRegister = ref(false);
 const mobileStep = ref(1);
 
 const articleQuery = ref('');
+const searchContainerRef = ref(null);
+const searchSuggestions = ref([]);
+const isSearchingSuggestions = ref(false);
+const showDropdown = ref(false);
+const highlightedIndex = ref(0);
+const suggestionRefs = ref({});
+let searchDebounceTimer = null;
+
 const searching = ref(false);
 const searchResults = ref([]);
 const selectedProduct = ref(null);
@@ -1023,6 +1165,153 @@ function startNewSale() {
   focusArticleInput();
 }
 
+function onSearchInput() {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  const q = articleQuery.value.trim();
+  if (q.length < 2) {
+    searchSuggestions.value = [];
+    showDropdown.value = false;
+    highlightedIndex.value = 0;
+    return;
+  }
+  searchDebounceTimer = setTimeout(fetchSuggestions, 250);
+}
+
+async function fetchSuggestions() {
+  const q = articleQuery.value.trim();
+  if (q.length < 2) return;
+  isSearchingSuggestions.value = true;
+
+  try {
+    const res = await api.get('/products/autocomplete', {
+      params: {
+        q,
+        store_id: activeSession.value?.store_id || currentStore.value?.id || 1,
+      },
+    });
+    const payload = res.data || res;
+    const items = payload.items || payload.data || (Array.isArray(payload) ? payload : []);
+    searchSuggestions.value = items;
+    showDropdown.value = items.length > 0 || q.length >= 2;
+    highlightedIndex.value = 0;
+  } catch (err) {
+    searchSuggestions.value = [];
+    showDropdown.value = false;
+  } finally {
+    isSearchingSuggestions.value = false;
+  }
+}
+
+function onKeyDown() {
+  if (!showDropdown.value || searchSuggestions.value.length === 0) return;
+  highlightedIndex.value = (highlightedIndex.value + 1) % searchSuggestions.value.length;
+  scrollToHighlighted();
+}
+
+function onKeyUp() {
+  if (!showDropdown.value || searchSuggestions.value.length === 0) return;
+  highlightedIndex.value = (highlightedIndex.value - 1 + searchSuggestions.value.length) % searchSuggestions.value.length;
+  scrollToHighlighted();
+}
+
+function onKeyEnter() {
+  if (showDropdown.value && searchSuggestions.value.length > 0) {
+    const item = searchSuggestions.value[highlightedIndex.value] || searchSuggestions.value[0];
+    if (item) {
+      selectSuggestion(item);
+    }
+  } else {
+    handleSearchArticle();
+  }
+}
+
+function onKeyEsc() {
+  showDropdown.value = false;
+  highlightedIndex.value = 0;
+}
+
+function onInputFocus() {
+  if (articleQuery.value.trim().length >= 2 && searchSuggestions.value.length > 0) {
+    showDropdown.value = true;
+  }
+}
+
+function clearSearch() {
+  articleQuery.value = '';
+  searchSuggestions.value = [];
+  showDropdown.value = false;
+  highlightedIndex.value = 0;
+  focusArticleInput();
+}
+
+function scrollToHighlighted() {
+  nextTick(() => {
+    const el = suggestionRefs.value[highlightedIndex.value];
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  });
+}
+
+function handleClickOutside(event) {
+  if (searchContainerRef.value && !searchContainerRef.value.contains(event.target)) {
+    showDropdown.value = false;
+  }
+}
+
+async function selectSuggestion(item) {
+  if (!item) return;
+
+  showDropdown.value = false;
+  searchSuggestions.value = [];
+  highlightedIndex.value = 0;
+  articleQuery.value = '';
+
+  // 1. Exact Barcode / SKU scan case: add directly to bill if exact variant size identified
+  if (item.is_exact_barcode_match && item.exact_variant_size) {
+    const exactSize = item.exact_variant_size;
+    if (exactSize.stock <= 0) {
+      alert(`Product "${item.product_name}" (${exactSize.size_name}) is currently OUT OF STOCK.`);
+      return;
+    }
+
+    const price = Number(exactSize.selling_price || item.selling_price || 0);
+
+    const existingIdx = cart.value.findIndex(
+      i => i.product_variant_size_id === exactSize.product_variant_size_id && i.unit_price === price
+    );
+
+    if (existingIdx >= 0) {
+      const newQty = cart.value[existingIdx].quantity + 1;
+      if (exactSize.stock > 0 && newQty > exactSize.stock) {
+        alert(`Cannot add more than available stock (${exactSize.stock}).`);
+        return;
+      }
+      cart.value[existingIdx].quantity = newQty;
+      cart.value[existingIdx].line_total = newQty * price;
+    } else {
+      cart.value.push({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        article_code: item.article_code,
+        product_variant_size_id: exactSize.product_variant_size_id,
+        size_name: exactSize.size_name,
+        quantity: 1,
+        default_price: price,
+        unit_price: price,
+        is_overridden: false,
+        line_total: price,
+        sku: exactSize.sku,
+      });
+    }
+    focusArticleInput();
+    return;
+  }
+
+  // 2. Normal Product Selection: trigger selectProduct to open the existing Size Selection UI!
+  await selectProduct(item);
+}
+
 function focusArticleInput() {
   nextTick(() => {
     if (articleInputRef.value) {
@@ -1034,5 +1323,10 @@ function focusArticleInput() {
 onMounted(() => {
   checkRegisterSession();
   printerStore.fetchSettings();
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 </script>

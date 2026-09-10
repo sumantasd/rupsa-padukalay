@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6 max-w-7xl mx-auto pb-16 antialiased font-sans">
+  <div class="space-y-6 max-w-7xl mx-auto pb-28 lg:pb-16 antialiased font-sans">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
       <div>
@@ -13,9 +13,17 @@
           reportType="inventory_stock"
           :filters="{ search: filters.search, brand_id: filters.brand_id, category_id: filters.category_id, color_id: filters.color_id, status: filters.status }"
         />
+        <RouterLink
+          v-if="canAddStock"
+          to="/admin/inventory/stock-add"
+          class="px-3.5 py-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-xl font-black text-xs flex items-center gap-1.5 transition-all shadow-md shadow-red-600/20 shrink-0"
+        >
+          <span>➕</span>
+          <span class="whitespace-nowrap">+ Add Stock</span>
+        </RouterLink>
         <button
           @click="fetchOverview(1)"
-          class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+          class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
         >
           <span>🔄 Refresh Balances</span>
         </button>
@@ -341,8 +349,14 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import ReportPdfButtons from '../../components/ui/ReportPdfButtons.vue';
 import api from '../../services/api';
 import { useReportPdf } from '../../composables/useReportPdf';
+import { useAuth } from '../../composables/useAuth';
 
+const { isSuperAdmin, hasPermission } = useAuth();
 const { exportReportPdf } = useReportPdf();
+
+const canAddStock = computed(() => {
+  return isSuperAdmin.value || hasPermission('inventory.adjust') || hasPermission('inventory.view');
+});
 
 function handleViewPdf() {
   exportReportPdf('inventory_stock', {

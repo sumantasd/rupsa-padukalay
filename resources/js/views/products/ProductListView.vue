@@ -35,6 +35,7 @@
 
         <!-- Category Filter -->
         <select
+          v-if="moduleStore.isModuleEnabled('productFieldCategory')"
           v-model="selectedCategory"
           @change="fetchProducts"
           class="w-full sm:w-auto bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-600"
@@ -90,7 +91,7 @@
           :subtitle="'ART: ' + (p.article_number || 'RP-' + p.id) + ' • ' + (p.brand?.name || 'RUPSA')"
           :status="p.is_active ? 'Active' : 'Inactive'"
           :status-type="p.is_active ? 'success' : 'neutral'"
-          :metric="p.category?.name || 'Footwear'"
+          :metric="moduleStore.isModuleEnabled('productFieldCategory') ? (p.category?.name || 'Footwear') : ''"
         >
           <div class="flex items-center gap-3 py-1">
             <div class="h-12 w-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xl shrink-0 overflow-hidden">
@@ -98,8 +99,8 @@
               <span v-else>👞</span>
             </div>
             <div class="space-y-0.5 text-xs font-mono">
-              <div>Gender: <strong class="text-slate-900 uppercase font-bold">{{ p.gender || 'Unisex' }}</strong></div>
-              <div>Variants: <strong class="text-red-600 font-bold">{{ p.variants?.length || 0 }} Color(s)</strong></div>
+              <div v-if="moduleStore.isModuleEnabled('productFieldGender')">Gender: <strong class="text-slate-900 uppercase font-bold">{{ p.gender || 'Unisex' }}</strong></div>
+              <div>Variants: <strong class="text-red-600 font-bold">{{ moduleStore.isModuleEnabled('productFieldColor') ? ((p.variants?.length || 0) + ' Color(s)') : (getTotalSkus(p) + ' Size SKU(s)') }}</strong></div>
             </div>
           </div>
 
@@ -135,9 +136,9 @@
             <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-black text-slate-500 uppercase tracking-wider">
               <tr>
                 <th class="px-5 py-3.5">Article / Product</th>
-                <th class="px-5 py-3.5">Category</th>
+                <th v-if="moduleStore.isModuleEnabled('productFieldCategory')" class="px-5 py-3.5">Category</th>
                 <th class="px-5 py-3.5">Brand</th>
-                <th class="px-5 py-3.5">Gender</th>
+                <th v-if="moduleStore.isModuleEnabled('productFieldGender')" class="px-5 py-3.5">Gender</th>
                 <th class="px-5 py-3.5">Variants & SKUs</th>
                 <th class="px-5 py-3.5">Status</th>
                 <th class="px-5 py-3.5 text-right">Actions</th>
@@ -164,7 +165,7 @@
               </td>
 
               <!-- Category -->
-              <td class="px-5 py-3.5">
+              <td v-if="moduleStore.isModuleEnabled('productFieldCategory')" class="px-5 py-3.5">
                 <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">
                   {{ p.category?.name || 'Uncategorized' }}
                 </span>
@@ -176,7 +177,7 @@
               </td>
 
               <!-- Gender -->
-              <td class="px-5 py-3.5">
+              <td v-if="moduleStore.isModuleEnabled('productFieldGender')" class="px-5 py-3.5">
                 <span class="px-2 py-0.5 rounded bg-purple-50 text-purple-700 text-[10px] font-extrabold uppercase border border-purple-100">
                   {{ p.gender || 'Unisex' }}
                 </span>
@@ -186,9 +187,9 @@
               <td class="px-5 py-3.5">
                 <div class="space-y-0.5">
                   <span class="font-bold text-slate-800 text-[11px]">
-                    {{ p.variants?.length || 0 }} Colors / {{ getTotalSkus(p) }} SKUs
+                    {{ moduleStore.isModuleEnabled('productFieldColor') ? ((p.variants?.length || 0) + ' Colors / ' + getTotalSkus(p) + ' SKUs') : (getTotalSkus(p) + ' Size SKUs') }}
                   </span>
-                  <div v-if="p.variants?.length" class="flex items-center gap-1 flex-wrap">
+                  <div v-if="moduleStore.isModuleEnabled('productFieldColor') && p.variants?.length" class="flex items-center gap-1 flex-wrap">
                     <span
                       v-for="v in p.variants"
                       :key="v.id"
@@ -309,10 +310,12 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAuth } from '../../composables/useAuth';
+import { useModuleStore } from '../../stores/moduleStore';
 import api from '../../services/api';
 import MobileListCard from '../../components/ui/MobileListCard.vue';
 
 const { hasPermission } = useAuth();
+const moduleStore = useModuleStore();
 
 const products = ref([]);
 const categories = ref([]);
@@ -401,6 +404,9 @@ async function deactivateAndClose(product) {
 }
 
 onMounted(() => {
+  if (!moduleStore.initialized) {
+    moduleStore.fetchSettings();
+  }
   fetchProducts();
   fetchDropdownMasters();
 });
